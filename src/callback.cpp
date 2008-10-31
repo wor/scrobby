@@ -39,7 +39,8 @@ extern bool notify_about_now_playing;
 
 void ScrobbyErrorCallback(MPD::Connection *, int, string errormessage, void *)
 {
-	Log("MPD sent error message: " + errormessage);
+	ignore_newlines(errormessage);
+	Log("MPD: " + errormessage);
 }
 
 void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void *)
@@ -59,14 +60,12 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 	}
 	if (changed.SongID || (old_state == MPD::psPlay && current_state == MPD::psStop))
 	{
-		if (sc.song)
-			SubmitSong(sc);
-
+		SubmitSong(sc);
+		
 		// in this case allow entering only once
 		if (old_state == MPD::psPlay && current_state == MPD::psStop)
 			old_state = MPD::psUnknown;
 		
-		sc.Clear();
 		if (Mpd->GetElapsedTime() < 5) // 5 seconds of playing for song to define this, should be enough
 			sc.started_time = time(NULL);
 		

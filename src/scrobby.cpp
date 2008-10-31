@@ -111,8 +111,7 @@ int main(/*int argc, char **argv*/)
 			Mpd->UpdateStatus();
 	}
 	
-	if (sc.song)
-		SubmitSong(sc);
+	SubmitSong(sc);
 	Log("Shutting down...");
 	if (remove(config.file_pid.c_str()) != 0)
 		Log("Couldn't remove pid file!");
@@ -158,6 +157,9 @@ bool SubmissionCandidate::canBeSubmitted()
 
 void SubmitSong(SubmissionCandidate &sc)
 {
+	if (!sc.song)
+		return;
+	
 	if (sc.canBeSubmitted())
 	{
 		if (hr.status != "OK" || hr.submission_url.empty())
@@ -300,6 +302,7 @@ void SubmitSong(SubmissionCandidate &sc)
 		Log("Song cached.");
 		pthread_mutex_unlock(&hr_lock);
 	}
+	sc.Clear();
 }
 
 namespace
@@ -363,6 +366,7 @@ namespace
 			int x = 0;
 			while (!Mpd->Connected())
 			{
+				SubmitSong(sc);
 				Log("Connecting to MPD...");
 				Mpd->Disconnect();
 				if (Mpd->Connect())
@@ -373,7 +377,6 @@ namespace
 				else
 				{
 					x++;
-					Log("MPD: " + Mpd->GetErrorMessage());
 					Log("Cannot connect, retrieving in " + IntoStr(10*x) + " seconds...");
 					sleep(10*x);
 				}
