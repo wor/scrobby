@@ -1,0 +1,37 @@
+#######################################
+## scrobby sample configuration file ##
+## (copy it to /etc/scrobby.conf)    ##
+#######################################
+#
+##
+## Note: you can specify a password
+## in clear text or hashed with an
+## md5 algorithm.
+##
+#
+### files settings
+#
+#log_file = "/var/log/scrobby.log"
+#
+#pid_file = "/var/run/scrobby.pid"
+#
+#cache_file = "/var/cache/scrobby/scrobby.cache"
+#
+### mpd settings
+#
+#mpd_host = "localhost"
+#
+#mpd_port = "6600"
+#
+#mpd_password = ""
+#
+#mpd_timeout = "15"
+#
+### last.fm settings
+#
+#lastfm_user = ""
+#
+#lastfm_password = ""
+#
+#lastfm_md5_password = ""
+#

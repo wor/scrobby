@@ -1,0 +1,37 @@
+AC_INIT(configure.in)
+
+AM_CONFIG_HEADER(config.h)
+AM_INIT_AUTOMAKE(scrobby, 0.0.98)
+
+AC_PREREQ(2.59)
+
+AC_LANG_CPLUSPLUS
+AC_PROG_CXX
+AM_PROG_LIBTOOL
+
+dnl ========================
+dnl = checking for openssl =
+dnl ========================
+PKG_CHECK_MODULES([libssl], libssl, , AC_MSG_ERROR([libssl library is required]))
+AC_SUBST(libssl_CFLAGS)
+AC_SUBST(libssl_LIBS)
+CPPFLAGS="$CPPFLAGS $libssl_CFLAGS"
+LDFLAGS="$LDFLAGS $libssl_LDFLAGS"
+AC_CHECK_HEADERS([openssl/evp.h], , AC_MSG_ERROR([missing openssl/evp.h header]))
+
+dnl =================================
+dnl = checking for curl and pthread =
+dnl =================================
+AC_CHECK_LIB(pthread, pthread_create, LDFLAGS="$LDFLAGS -pthread", AC_MSG_ERROR([pthread library is required]))
+AC_CHECK_HEADERS([pthread.h], , AC_MSG_ERROR([missing pthread.h header]))
+AC_PATH_PROG(CURL_CONFIG, curl-config)
+if test "$CURL_CONFIG" != "" ; then
+	CPPFLAGS="$CPPFLAGS `$CURL_CONFIG --cflags`"
+	AC_CHECK_LIB(curl, curl_easy_init, LDFLAGS="$LDFLAGS `$CURL_CONFIG --libs`", AC_MSG_ERROR([curl library is required]))
+	AC_CHECK_HEADERS([curl/curl.h], , AC_MSG_ERROR([missing curl.h header]))
+else
+	AC_MSG_ERROR([curl-config executable is missing])
+fi
+
+AC_CONFIG_FILES([Makefile doc/Makefile src/Makefile])
+AC_OUTPUT
