@@ -83,13 +83,15 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		}
 		else if (sc.song && sc.song->artist && sc.song->title)
 		{
+			Log("Playing song detected: " + string(sc.song->artist) + " - " + string(sc.song->title), llVerbose);
+			
 			if (hr.status == "OK" && !hr.nowplaying_url.empty())
 			{
-				Log("Playing song detected, sending notification...", llInfo);
+				Log("Sending now playing notification...", llInfo);
 			}
 			else
 			{
-				Log("Playing song detected, notification not sent due to problem with connection.", llInfo);
+				Log("Notification not sent due to problem with connection.", llInfo);
 				goto NOTIFICATION_FAILED;
 			}
 			
