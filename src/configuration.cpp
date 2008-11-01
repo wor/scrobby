@@ -71,6 +71,42 @@ namespace
 bool CheckFiles(ScrobbyConfig &conf)
 {
 	std::ofstream f;
+	std::ifstream g;
+	
+	g.open(conf.file_pid.c_str());
+	if (g.is_open())
+	{
+		string strpid;
+		getline(g, strpid);
+		g.close();
+		pid_t pid = StrToInt(strpid);
+		if (pid < 1)
+		{
+			std::cerr << "pid file: " << conf.file_pid << " is invalid, trying to remove...\n";
+			if (unlink(conf.file_pid.c_str()) == 0)
+			{
+				std::cout << "pid file succesfully removed.\n";
+			}
+			else
+			{
+				std::cerr << "couldn't remove pid file.\n";
+				return false;
+			}
+		}
+		else
+		{
+			std::cerr << "scrobby is already running with PID " << pid << "!\n";
+			return false;
+		}
+	}
+	
+	f.open(conf.file_pid.c_str(), std::ios_base::app);
+	if (!f.is_open())
+	{
+		std::cerr << "Cannot create/open pid file: " << conf.file_pid << std::endl;
+		return false;
+	}
+	f.close();
 	
 	f.open(conf.file_log.c_str(), std::ios_base::app);
 	if (!f.is_open())
@@ -84,22 +120,6 @@ bool CheckFiles(ScrobbyConfig &conf)
 	if (!f.is_open())
 	{
 		std::cerr << "Cannot create/open cache file: " << conf.file_cache << std::endl;
-		return false;
-	}
-	f.close();
-	
-	std::ifstream g(conf.file_pid.c_str());
-	if (g.is_open())
-	{
-		string pid;
-		getline(g, pid);
-		std::cerr << "scrobby is already running with PID " << pid << "!\n";
-		return false;
-	}
-	f.open(conf.file_pid.c_str(), std::ios_base::app);
-	if (!f.is_open())
-	{
-		std::cerr << "Cannot create/open pid file: " << conf.file_pid << std::endl;
 		return false;
 	}
 	f.close();
