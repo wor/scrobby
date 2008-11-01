@@ -57,13 +57,15 @@ namespace
 	void *handshake_handler(void *);
 }
 
-int main(/*int argc, char **argv*/)
+int main(int argc, char **argv)
 {
+	const string config_file = argc > 1 ? argv[1] : "/etc/scrobby.conf";
+	
 	DefaultConfiguration(config);
 	
-	if (!ReadConfiguration(config, "/etc/scrobby.conf"))
+	if (!ReadConfiguration(config, config_file))
 	{
-		std::cerr << "cannot read configuration file!";
+		std::cerr << "cannot read configuration file: " << config_file << std::endl;
 		return 1;
 	}
 	if (config.lastfm_user.empty() || (config.lastfm_md5_password.empty() && config.lastfm_password.empty()))
