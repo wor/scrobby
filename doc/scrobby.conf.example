@@ -9,6 +9,10 @@
 ## md5 algorithm.
 ##
 #
+### log settings
+#
+#log_level = "info" (none/info/verbose)
+#
 ### files settings
 #
 #log_file = "/var/log/scrobby.log"

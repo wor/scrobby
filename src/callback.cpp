@@ -40,7 +40,7 @@ extern bool notify_about_now_playing;
 void ScrobbyErrorCallback(MPD::Connection *, int, string errormessage, void *)
 {
 	ignore_newlines(errormessage);
-	Log("MPD: " + errormessage);
+	Log("MPD: " + errormessage, llVerbose);
 }
 
 void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void *)
@@ -79,17 +79,17 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 	{
 		if (sc.song && (!sc.song->artist || !sc.song->title))
 		{
-			Log("Playing song with missing tags detected.");
+			Log("Playing song with missing tags detected.", llInfo);
 		}
 		else if (sc.song && sc.song->artist && sc.song->title)
 		{
 			if (hr.status == "OK" && !hr.nowplaying_url.empty())
 			{
-				Log("Playing song detected, sending notification...");
+				Log("Playing song detected, sending notification...", llInfo);
 			}
 			else
 			{
-				Log("Playing song detected, notification not sent due to problem with connection.");
+				Log("Playing song detected, notification not sent due to problem with connection.", llInfo);
 				goto NOTIFICATION_FAILED;
 			}
 			
@@ -125,8 +125,8 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			curl_free(c_album);
 			curl_free(c_track);
 			
-			Log("URL: " + hr.nowplaying_url);
-			Log("Post data: " + postdata);
+			Log("URL: " + hr.nowplaying_url, llVerbose);
+			Log("Post data: " + postdata, llVerbose);
 			
 			curl_easy_setopt(np_notification, CURLOPT_URL, hr.nowplaying_url.c_str());
 			curl_easy_setopt(np_notification, CURLOPT_POST, 1);
@@ -142,15 +142,15 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			
 			if (code != CURLE_OK)
 			{
-				Log("Error while sending notification: " + string(curl_easy_strerror(code)));
+				Log("Error while sending notification: " + string(curl_easy_strerror(code)), llInfo);
 			}
 			else if (result == "OK")
 			{
-				Log("Notification about currently playing song sent.");
+				Log("Notification about currently playing song sent.", llInfo);
 			}
 			else
 			{
-				Log("Audioscrobbler returned status " + result);
+				Log("Audioscrobbler returned status " + result, llInfo);
 			}
 		}
 		if (0)
@@ -159,7 +159,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			
 			pthread_mutex_lock(&hr_lock);
 			hr.Clear(); // handshake probably failed if we are here, so reset it
-			Log("Handshake status reset");
+			Log("Handshake status reset", llVerbose);
 			pthread_mutex_unlock(&hr_lock);
 		}
 		notify_about_now_playing = 0;

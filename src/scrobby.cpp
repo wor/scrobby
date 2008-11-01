@@ -112,9 +112,9 @@ int main(/*int argc, char **argv*/)
 	}
 	
 	SubmitSong(sc);
-	Log("Shutting down...");
+	Log("Shutting down...", llInfo);
 	if (remove(config.file_pid.c_str()) != 0)
-		Log("Couldn't remove pid file!");
+		Log("Couldn't remove pid file!", llInfo);
 	delete Mpd;
 	
 	return 0;
@@ -135,21 +135,21 @@ bool SubmissionCandidate::canBeSubmitted()
 	{
 		if (!started_time)
 		{
-			Log("Song's start time isn't known, not submitting.");
+			Log("Song's start time isn't known, not submitting.", llInfo);
 		}
 		else if (song->time < 30)
 		{
-			Log("Song's length is too short, not submitting.");
+			Log("Song's length is too short, not submitting.", llInfo);
 		}
 		else if (!song->artist || !song->title)
 		{
-			Log("Song has missing tags, not submitting.");
+			Log("Song has missing tags, not submitting.", llInfo);
 		}
 		return false;
 	}
 	else if (noticed_playback < 4*60 && noticed_playback < song->time/2)
 	{
-		Log("Noticed playback was too short, not submitting.");
+		Log("Noticed playback was too short, not submitting.", llInfo);
 		return false;
 	}
 	return true;
@@ -164,11 +164,11 @@ void SubmitSong(SubmissionCandidate &sc)
 	{
 		if (hr.status != "OK" || hr.submission_url.empty())
 		{
-			Log("Problems with handshake status, queue song at position " + IntoStr(queue.size()) + "...");
+			Log("Problems with handshake status, queue song at position " + IntoStr(queue.size()) + "...", llInfo);
 			goto SUBMISSION_FAILED;
 		}
 		
-		Log("Submitting song...");
+		Log("Submitting song...", llInfo);
 		
 		string result, postdata;
 		CURLcode code;
@@ -206,8 +206,8 @@ void SubmitSong(SubmissionCandidate &sc)
 		curl_free(c_album);
 		curl_free(c_track);
 		
-		Log("URL: " + hr.submission_url);
-		Log("Post data: " + postdata);
+		Log("URL: " + hr.submission_url, llVerbose);
+		Log("Post data: " + postdata, llVerbose);
 		
 		curl_easy_setopt(submission, CURLOPT_URL, hr.submission_url.c_str());
 		curl_easy_setopt(submission, CURLOPT_POST, 1);
@@ -223,17 +223,17 @@ void SubmitSong(SubmissionCandidate &sc)
 		
 		if (result == "OK")
 		{
-			Log("Song submitted.");
+			Log("Song submitted.", llInfo);
 		}
 		else
 		{
 			if (result.empty())
 			{
-				Log("Error while submitting song: " + string(curl_easy_strerror(code)));
+				Log("Error while submitting song: " + string(curl_easy_strerror(code)), llInfo);
 			}
 			else
 			{
-				Log("Audioscrobbler returned status " + result);
+				Log("Audioscrobbler returned status " + result, llInfo);
 			}
 			goto SUBMISSION_FAILED;
 		}
@@ -244,7 +244,7 @@ void SubmitSong(SubmissionCandidate &sc)
 		
 		pthread_mutex_lock(&hr_lock);
 		hr.Clear(); // handshake probably failed if we are here, so reset it
-		Log("Handshake status reset");
+		Log("Handshake status reset", llVerbose);
 		
 		string cache;
 		string offset = IntoStr(queue.size());
@@ -290,7 +290,7 @@ void SubmitSong(SubmissionCandidate &sc)
 		cache += offset;
 		cache += "]=";
 		
-		Log("Metadata: " + cache);
+		Log("Metadata: " + cache, llVerbose);
 		
 		curl_free(c_artist);
 		curl_free(c_title);
@@ -299,7 +299,7 @@ void SubmitSong(SubmissionCandidate &sc)
 		
 		Cache(cache);
 		queue.push_back(cache);
-		Log("Song cached.");
+		Log("Song cached.", llInfo);
 		pthread_mutex_unlock(&hr_lock);
 	}
 	sc.Clear();
@@ -338,7 +338,7 @@ namespace
 		
 		if (code != CURLE_OK)
 		{
-			Log("Error while sending handshake: " + string(curl_easy_strerror(code)));
+			Log("Error while sending handshake: " + string(curl_easy_strerror(code)), llInfo);
 			return false;
 		}
 		
@@ -367,17 +367,17 @@ namespace
 			while (!Mpd->Connected())
 			{
 				SubmitSong(sc);
-				Log("Connecting to MPD...");
+				Log("Connecting to MPD...", llVerbose);
 				Mpd->Disconnect();
 				if (Mpd->Connect())
 				{
-					Log("Connected to " + config.mpd_host + "!");
+					Log("Connected to " + config.mpd_host + "!", llInfo);
 					x = 0;
 				}
 				else
 				{
 					x++;
-					Log("Cannot connect, retrieving in " + IntoStr(10*x) + " seconds...");
+					Log("Cannot connect, retrieving in " + IntoStr(10*x) + " seconds...", llInfo);
 					sleep(10*x);
 				}
 			}
@@ -397,14 +397,14 @@ namespace
 				hr.Clear();
 				if (send_handshake() && !hr.status.empty())
 				{
-					Log("Handshake returned " + hr.status);
+					Log("Handshake returned " + hr.status, llInfo);
 				}
 				if (hr.status == "OK")
 				{
-					Log("Connected to Audioscrobbler!");
+					Log("Connected to Audioscrobbler!", llInfo);
 					if (!queue.empty())
 					{
-						Log("Queue's not empty, submitting songs...");
+						Log("Queue's not empty, submitting songs...", llInfo);
 						
 						string result, postdata;
 						CURLcode code;
@@ -418,8 +418,8 @@ namespace
 						for (std::vector<string>::const_iterator it = queue.begin(); it != queue.end(); it++)
 							postdata += *it;
 						
-						Log("URL: " + hr.submission_url);
-						Log("Post data: " + postdata);
+						Log("URL: " + hr.submission_url, llVerbose);
+						Log("Post data: " + postdata, llVerbose);
 						
 						curl_easy_setopt(submission, CURLOPT_URL, hr.submission_url.c_str());
 						curl_easy_setopt(submission, CURLOPT_POST, 1);
@@ -435,7 +435,7 @@ namespace
 						
 						if (result == "OK")
 						{
-							Log("Number of submitted songs: " + IntoStr(queue.size()));
+							Log("Number of submitted songs: " + IntoStr(queue.size()), llInfo);
 							queue.clear();
 							ClearCache();
 							x = 0;
@@ -444,11 +444,11 @@ namespace
 						{
 							if (result.empty())
 							{
-								Log("Error while submitting songs: " + string(curl_easy_strerror(code)));
+								Log("Error while submitting songs: " + string(curl_easy_strerror(code)), llInfo);
 							}
 							else
 							{
-								Log("Audioscrobbler returned status " + result);
+								Log("Audioscrobbler returned status " + result, llInfo);
 							}
 						}
 					}
@@ -457,7 +457,7 @@ namespace
 				else
 				{
 					x++;
-					Log("Connection refused, retrieving in " + IntoStr(10*x) + " seconds...");
+					Log("Connection refused, retrieving in " + IntoStr(10*x) + " seconds...", llInfo);
 					sleep(10*x);
 				}
 				pthread_mutex_unlock(&hr_lock);

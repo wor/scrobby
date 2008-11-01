@@ -89,8 +89,10 @@ void Cache(const std::string &s)
 	}
 }
 
-void Log(const std::string &s)
+void Log(const std::string &s, LogLevel ll)
 {
+	if (config.log_level < ll)
+		return;
 	pthread_mutex_lock(&log_file);
 	std::ofstream f(config.file_log.c_str(), std::ios::app);
 	if (f.is_open())

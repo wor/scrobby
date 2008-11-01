@@ -47,6 +47,25 @@ namespace
 		else
 			return "";
 	}
+	
+	LogLevel IntoLogLevel(const string &value)
+	{
+		LogLevel result = llInfo;
+		if (value == "none")
+		{
+			result = llNone;
+		}
+		else if (value == "info")
+		{
+			result = llInfo;
+		}
+		else if (value == "verbose")
+		{
+			result = llVerbose;
+		}
+		return result;
+	}
+	
 }
 
 bool CheckFiles(ScrobbyConfig &conf)
@@ -97,6 +116,8 @@ void DefaultConfiguration(ScrobbyConfig &conf)
 	conf.file_log = "/var/log/scrobby.log";
 	conf.file_pid = "/var/run/scrobby.pid";
 	conf.file_cache = "/var/cache/scrobby/scrobby.cache";
+	
+	conf.log_level = llInfo;
 }
 
 bool ReadConfiguration(ScrobbyConfig &conf, const string &file)
@@ -163,6 +184,11 @@ bool ReadConfiguration(ScrobbyConfig &conf, const string &file)
 			{
 				if (!v.empty())
 					conf.lastfm_md5_password = v;
+			}
+			else if (line.find("log_level") != string::npos)
+			{
+				if (!v.empty())
+					conf.log_level = IntoLogLevel(v);
 			}
 		}
 	}

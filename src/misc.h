@@ -25,6 +25,8 @@
 #include <string>
 #include <vector>
 
+#include "configuration.h"
+
 size_t write_data(char *, size_t, size_t, std::string);
 
 bool Daemonize();
@@ -33,7 +35,7 @@ void ClearCache();
 void GetCachedSongs(std::vector<std::string> &);
 
 void Cache(const std::string &);
-void Log(const std::string &);
+void Log(const std::string &, LogLevel);
 
 void ignore_newlines(std::string &);
 

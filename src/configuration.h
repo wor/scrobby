@@ -23,6 +23,8 @@
 
 #include <string>
 
+enum LogLevel { llNone, llInfo, llVerbose };
+
 struct ScrobbyConfig
 {
 	std::string mpd_host;
@@ -37,6 +39,8 @@ struct ScrobbyConfig
 	std::string lastfm_user;
 	std::string lastfm_password;
 	std::string lastfm_md5_password;
+	
+	LogLevel log_level;
 };
 
 bool CheckFiles(ScrobbyConfig &);
