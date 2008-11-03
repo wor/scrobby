@@ -135,7 +135,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			curl_easy_setopt(np_notification, CURLOPT_POSTFIELDS, postdata.c_str());
 			curl_easy_setopt(np_notification, CURLOPT_WRITEFUNCTION, write_data);
 			curl_easy_setopt(np_notification, CURLOPT_WRITEDATA, &result);
-			curl_easy_setopt(np_notification, CURLOPT_CONNECTTIMEOUT, 5);
+			curl_easy_setopt(np_notification, CURLOPT_CONNECTTIMEOUT, curl_timeout);
 			code = curl_easy_perform(np_notification);
 			curl_easy_cleanup(np_notification);
 			pthread_mutex_unlock(&curl);

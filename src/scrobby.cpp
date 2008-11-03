@@ -216,7 +216,7 @@ void SubmitSong(SubmissionCandidate &sc)
 		curl_easy_setopt(submission, CURLOPT_POSTFIELDS, postdata.c_str());
 		curl_easy_setopt(submission, CURLOPT_WRITEFUNCTION, write_data);
 		curl_easy_setopt(submission, CURLOPT_WRITEDATA, &result);
-		curl_easy_setopt(submission, CURLOPT_CONNECTTIMEOUT, 5);
+		curl_easy_setopt(submission, CURLOPT_CONNECTTIMEOUT, curl_timeout);
 		code = curl_easy_perform(submission);
 		curl_easy_cleanup(submission);
 		pthread_mutex_unlock(&curl);
@@ -333,7 +333,7 @@ namespace
 		curl_easy_setopt(handshake, CURLOPT_URL, handshake_url.c_str());
 		curl_easy_setopt(handshake, CURLOPT_WRITEFUNCTION, write_data);
 		curl_easy_setopt(handshake, CURLOPT_WRITEDATA, &result);
-		curl_easy_setopt(handshake, CURLOPT_CONNECTTIMEOUT, 5);
+		curl_easy_setopt(handshake, CURLOPT_CONNECTTIMEOUT, curl_timeout);
 		code = curl_easy_perform(handshake);
 		curl_easy_cleanup(handshake);
 		pthread_mutex_unlock(&curl);
@@ -428,7 +428,7 @@ namespace
 						curl_easy_setopt(submission, CURLOPT_POSTFIELDS, postdata.c_str());
 						curl_easy_setopt(submission, CURLOPT_WRITEFUNCTION, write_data);
 						curl_easy_setopt(submission, CURLOPT_WRITEDATA, &result);
-						curl_easy_setopt(submission, CURLOPT_CONNECTTIMEOUT, 5);
+						curl_easy_setopt(submission, CURLOPT_CONNECTTIMEOUT, curl_timeout);
 						code = curl_easy_perform(submission);
 						curl_easy_cleanup(submission);
 						pthread_mutex_unlock(&curl);

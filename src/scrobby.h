@@ -29,6 +29,8 @@
 
 #include "libmpdclient.h"
 
+const int curl_timeout = 10;
+
 struct HandshakeResult
 {
 	void Clear()
