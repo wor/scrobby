@@ -45,7 +45,7 @@ pthread_mutex_t hr_lock = PTHREAD_MUTEX_INITIALIZER;
 
 std::vector<string> queue;
 
-bool exit = 0;
+bool scrobby_exit = 0;
 bool notify_about_now_playing = 0;
 
 namespace
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 	pthread_detach(mpdconnection_th);
 	pthread_detach(handshake_th);
 
-	while (!exit && !usleep(500000))
+	while (!scrobby_exit && !usleep(500000))
 	{
 		if (Mpd->Connected())
 			Mpd->UpdateStatus();
@@ -328,7 +328,7 @@ namespace
 {
 	void signal_handler(int)
 	{
-		exit = 1;
+		scrobby_exit = 1;
 	}
 	
 	bool send_handshake()
@@ -380,7 +380,7 @@ namespace
 	void *mpdconnection_handler(void *data)
 	{
 		MPD::Connection *Mpd = static_cast<MPD::Connection *>(data);
-		while (!exit)
+		while (!scrobby_exit)
 		{
 			int x = 0;
 			while (!Mpd->Connected())
@@ -408,7 +408,7 @@ namespace
 	void *handshake_handler(void *)
 	{
 		int x = 0;
-		while (!exit)
+		while (!scrobby_exit)
 		{
 			if (hr.status != "OK")
 			{
