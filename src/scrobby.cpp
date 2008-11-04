@@ -104,9 +104,7 @@ int main(int argc, char **argv)
 	pthread_create(&handshake_th, NULL, handshake_handler, NULL);
 	pthread_detach(mpdconnection_th);
 	pthread_detach(handshake_th);
-	
-	sleep(1);
-	
+
 	while (!exit && !usleep(500000))
 	{
 		if (Mpd->Connected())
@@ -122,6 +120,19 @@ int main(int argc, char **argv)
 	return 0;
 }
 
+SubmissionCandidate::SubmissionCandidate() : song(0),
+					     started_time(0),
+					     noticed_playback(0),
+					     is_stream(0)
+{
+}
+
+SubmissionCandidate::~SubmissionCandidate()
+{
+	if (song)
+		mpd_freeSong(song);
+}
+
 void SubmissionCandidate::Clear()
 {
 	if (song)
@@ -129,6 +140,7 @@ void SubmissionCandidate::Clear()
 	song = 0;
 	started_time = 0;
 	noticed_playback = 0;
+	is_stream = 0;
 }
 
 bool SubmissionCandidate::canBeSubmitted()
@@ -162,6 +174,12 @@ void SubmitSong(SubmissionCandidate &sc)
 	if (!sc.song)
 		return;
 	
+	if (sc.is_stream)
+	{
+		sc.song->time = sc.noticed_playback;
+	}
+	
+	pthread_mutex_lock(&hr_lock);
 	if (sc.canBeSubmitted())
 	{
 		if (hr.status != "OK" || hr.submission_url.empty())
@@ -244,7 +262,6 @@ void SubmitSong(SubmissionCandidate &sc)
 	{
 		SUBMISSION_FAILED: // so we cache not submitted song
 		
-		pthread_mutex_lock(&hr_lock);
 		hr.Clear(); // handshake probably failed if we are here, so reset it
 		Log("Handshake status reset", llVerbose);
 		
@@ -302,8 +319,8 @@ void SubmitSong(SubmissionCandidate &sc)
 		Cache(cache);
 		queue.push_back(cache);
 		Log("Song cached.", llInfo);
-		pthread_mutex_unlock(&hr_lock);
 	}
+	pthread_mutex_unlock(&hr_lock);
 	sc.Clear();
 }
 
@@ -454,7 +471,7 @@ namespace
 							}
 						}
 					}
-					notify_about_now_playing = 1;
+					notify_about_now_playing = !sc.is_stream;
 				}
 				else
 				{

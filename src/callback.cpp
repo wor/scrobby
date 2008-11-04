@@ -19,6 +19,7 @@
  ***************************************************************************/
 
 #include <curl/curl.h>
+#include <cstring>
 
 #include "callback.h"
 #include "misc.h"
@@ -66,20 +67,28 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		if (old_state == MPD::psPlay && current_state == MPD::psStop)
 			old_state = MPD::psUnknown;
 		
-		if (Mpd->GetElapsedTime() < 5) // 5 seconds of playing for song to define this, should be enough
+		if (Mpd->GetElapsedTime()-sc.noticed_playback < 5)
 			sc.started_time = time(NULL);
 		
 		if (current_state == MPD::psPlay || current_state == MPD::psPause)
 		{
-			sc.song = Mpd->CurrentSong();
-			notify_about_now_playing = 1;
+			do
+				sc.song = Mpd->CurrentSong();
+			while (!sc.song);
+			sc.is_stream = strncmp("http://", sc.song->file, 7) == 0;
+			notify_about_now_playing = !sc.is_stream;
 		}
 	}
 	if (notify_about_now_playing)
 	{
+		pthread_mutex_lock(&hr_lock);
 		if (sc.song && (!sc.song->artist || !sc.song->title))
 		{
 			Log("Playing song with missing tags detected.", llInfo);
+		}
+		else if (sc.song && sc.song->time <= 0)
+		{
+			Log("Playing song with unknown length detected.", llInfo);
 		}
 		else if (sc.song && sc.song->artist && sc.song->title)
 		{
@@ -142,28 +151,31 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			
 			ignore_newlines(result);
 			
-			if (code != CURLE_OK)
-			{
-				Log("Error while sending notification: " + string(curl_easy_strerror(code)), llInfo);
-			}
-			else if (result == "OK")
+			if (result == "OK")
 			{
 				Log("Notification about currently playing song sent.", llInfo);
 			}
 			else
 			{
-				Log("Audioscrobbler returned status " + result, llInfo);
+				if (result.empty())
+				{
+					Log("Error while sending notification: " + string(curl_easy_strerror(code)), llInfo);
+				}
+				else
+				{
+					Log("Audioscrobbler returned status " + result, llInfo);
+				}
+				goto NOTIFICATION_FAILED;
 			}
 		}
 		if (0)
 		{
 			NOTIFICATION_FAILED:
 			
-			pthread_mutex_lock(&hr_lock);
 			hr.Clear(); // handshake probably failed if we are here, so reset it
 			Log("Handshake status reset", llVerbose);
-			pthread_mutex_unlock(&hr_lock);
 		}
+		pthread_mutex_unlock(&hr_lock);
 		notify_about_now_playing = 0;
 	}
 }

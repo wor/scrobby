@@ -49,8 +49,8 @@ struct HandshakeResult
 
 struct SubmissionCandidate
 {
-	SubmissionCandidate() : song(0), started_time(0), noticed_playback(0) { }
-	~SubmissionCandidate() { if (song) mpd_freeSong(song); }
+	SubmissionCandidate();
+	~SubmissionCandidate();
 	
 	void Clear();
 	bool canBeSubmitted();
@@ -58,6 +58,8 @@ struct SubmissionCandidate
 	mpd_Song *song;
 	time_t started_time;
 	int noticed_playback;
+	
+	bool is_stream;
 };
 
 void SubmitSong(SubmissionCandidate &);
