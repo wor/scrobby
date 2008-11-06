@@ -113,9 +113,9 @@ int main(int argc, char **argv)
 	}
 	
 	s.Submit();
-	Log("Shutting down...", llInfo);
+	Log(llInfo, "Shutting down...");
 	if (remove(config.file_pid.c_str()) != 0)
-		Log("Couldn't remove pid file!", llInfo);
+		Log(llInfo, "Couldn't remove pid file!");
 	delete Mpd;
 	
 	return 0;
@@ -154,7 +154,7 @@ namespace
 		
 		if (code != CURLE_OK)
 		{
-			Log("Error while sending handshake: " + string(curl_easy_strerror(code)), llInfo);
+			Log(llInfo, "Error while sending handshake: %s", curl_easy_strerror(code));
 			return false;
 		}
 		
@@ -183,17 +183,17 @@ namespace
 			while (!Mpd->Connected())
 			{
 				s.Submit();
-				Log("Connecting to MPD...", llVerbose);
+				Log(llVerbose, "Connecting to MPD...");
 				Mpd->Disconnect();
 				if (Mpd->Connect())
 				{
-					Log("Connected to " + config.mpd_host + "!", llInfo);
+					Log(llInfo, "Connected to %s !", config.mpd_host.c_str());
 					x = 0;
 				}
 				else
 				{
 					x++;
-					Log("Cannot connect, retrieving in " + IntoStr(10*x) + " seconds...", llInfo);
+					Log(llInfo, "Cannot connect, retrieving in %d seconds...", 10*x);
 					sleep(10*x);
 				}
 			}
@@ -213,14 +213,14 @@ namespace
 				handshake.Clear();
 				if (send_handshake() && !handshake.status.empty())
 				{
-					Log("Handshake returned " + handshake.status, llInfo);
+					Log(llInfo, "Handshake returned %s", handshake.status.c_str());
 				}
 				if (handshake.status == "OK")
 				{
-					Log("Connected to Audioscrobbler!", llInfo);
+					Log(llInfo, "Connected to Audioscrobbler!");
 					if (!SongsQueue.empty())
 					{
-						Log("Queue's not empty, submitting songs...", llInfo);
+						Log(llInfo, "Queue's not empty, submitting songs...");
 						
 						string result, postdata;
 						CURLcode code;
@@ -234,8 +234,8 @@ namespace
 						for (std::vector<string>::const_iterator it = SongsQueue.begin(); it != SongsQueue.end(); it++)
 							postdata += *it;
 						
-						Log("URL: " + handshake.submission_url, llVerbose);
-						Log("Post data: " + postdata, llVerbose);
+						Log(llVerbose, "URL: %s", handshake.submission_url.c_str());
+						Log(llVerbose, "Post data: %s", postdata.c_str());
 						
 						curl_easy_setopt(submission, CURLOPT_URL, handshake.submission_url.c_str());
 						curl_easy_setopt(submission, CURLOPT_POST, 1);
@@ -251,7 +251,7 @@ namespace
 						
 						if (result == "OK")
 						{
-							Log("Number of submitted songs: " + IntoStr(SongsQueue.size()), llInfo);
+							Log(llInfo, "Number of submitted songs: %d", SongsQueue.size());
 							SongsQueue.clear();
 							ClearCache();
 							x = 0;
@@ -260,11 +260,11 @@ namespace
 						{
 							if (result.empty())
 							{
-								Log("Error while submitting songs: " + string(curl_easy_strerror(code)), llInfo);
+								Log(llInfo, "Error while submitting songs: %s", curl_easy_strerror(code));
 							}
 							else
 							{
-								Log("Audioscrobbler returned status " + result, llInfo);
+								Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
 							}
 						}
 					}
@@ -273,7 +273,7 @@ namespace
 				else
 				{
 					x++;
-					Log("Connection refused, retrieving in " + IntoStr(10*x) + " seconds...", llInfo);
+					Log(llInfo, "Connection refused, retrieving in %d seconds...", 10*x);
 					sleep(10*x);
 				}
 				pthread_mutex_unlock(&handshake_lock);

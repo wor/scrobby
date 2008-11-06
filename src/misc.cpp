@@ -85,17 +85,24 @@ void Cache(const std::string &s)
 	}
 }
 
-void Log(const std::string &s, LogLevel ll)
+void Log(LogLevel ll, const char *format, ...)
 {
 	if (config.log_level < ll)
 		return;
 	pthread_mutex_lock(&log_file);
-	std::ofstream f(config.file_log.c_str(), std::ios::app);
-	if (f.is_open())
+	FILE *f = fopen(config.file_log.c_str(), "a");
+	if (!f)
 	{
-		f << "[" << DateTime() << "] " << s << std::endl;
-		f.close();
+		perror("Cannot open log file!\n");
+		exit(1);
 	}
+	fprintf(f, "[%s] ", DateTime().c_str());
+	va_list list;
+	va_start(list, format);
+	vfprintf(f, format, list);
+	va_end(list);
+	fprintf(f, "\n");
+	fclose(f);
 	pthread_mutex_unlock(&log_file);
 }
 

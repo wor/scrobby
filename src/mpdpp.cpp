@@ -165,20 +165,20 @@ int MPD::Connection::CheckForErrors()
 	itsErrorCode = 0;
 	if (itsConnection->error)
 	{
+		itsErrorMessage = itsConnection->errorStr;
 		if (itsConnection->error == MPD_ERROR_ACK)
 		{
 			if (itsErrorHandler)
-				itsErrorHandler(this, itsConnection->errorCode, itsConnection->errorStr, itsErrorHandlerUserdata);
+				itsErrorHandler(this, itsConnection->errorCode, itsErrorMessage, itsErrorHandlerUserdata);
 			itsErrorCode = itsConnection->errorCode;
 		}
 		else
 		{
 			isConnected = 0; // the rest of errors are fatal to connection
 			if (itsErrorHandler)
-				itsErrorHandler(this, itsConnection->error, itsConnection->errorStr, itsErrorHandlerUserdata);
+				itsErrorHandler(this, itsConnection->error, itsErrorMessage, itsErrorHandlerUserdata);
 			itsErrorCode = itsConnection->error;
 		}
-		itsErrorMessage = itsConnection->errorStr;
 		mpd_clearError(itsConnection);
 	}
 	return itsErrorCode;

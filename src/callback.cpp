@@ -42,7 +42,7 @@ extern bool notify_about_now_playing;
 void ScrobbyErrorCallback(MPD::Connection *, int, string errormessage, void *)
 {
 	ignore_newlines(errormessage);
-	Log("MPD: " + errormessage, llVerbose);
+	Log(llVerbose, "MPD: %s", errormessage.c_str());
 }
 
 void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void *)
@@ -84,23 +84,23 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		pthread_mutex_lock(&handshake_lock);
 		if (s.Data() && (!s.Data()->artist || !s.Data()->title))
 		{
-			Log("Playing song with missing tags detected.", llInfo);
+			Log(llInfo, "Playing song with missing tags detected.");
 		}
 		else if (s.Data() && s.Data()->time <= 0)
 		{
-			Log("Playing song with unknown length detected.", llInfo);
+			Log(llInfo, "Playing song with unknown length detected.");
 		}
 		else if (s.Data() && s.Data()->artist && s.Data()->title)
 		{
-			Log("Playing song detected: " + string(s.Data()->artist) + " - " + string(s.Data()->title), llVerbose);
+			Log(llVerbose, "Playing song detected: %s - %s", s.Data()->artist, s.Data()->title);
 			
 			if (handshake.status == "OK" && !handshake.nowplaying_url.empty())
 			{
-				Log("Sending now playing notification...", llInfo);
+				Log(llInfo, "Sending now playing notification...");
 			}
 			else
 			{
-				Log("Notification not sent due to problem with connection.", llInfo);
+				Log(llInfo, "Notification not sent due to problem with connection.");
 				goto NOTIFICATION_FAILED;
 			}
 			
@@ -136,8 +136,8 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			curl_free(c_album);
 			curl_free(c_track);
 			
-			Log("URL: " + handshake.nowplaying_url, llVerbose);
-			Log("Post data: " + postdata, llVerbose);
+			Log(llVerbose, "URL: %s", handshake.nowplaying_url.c_str());
+			Log(llVerbose, "Post data: %s", postdata.c_str());
 			
 			curl_easy_setopt(np_notification, CURLOPT_URL, handshake.nowplaying_url.c_str());
 			curl_easy_setopt(np_notification, CURLOPT_POST, 1);
@@ -153,17 +153,17 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			
 			if (result == "OK")
 			{
-				Log("Notification about currently playing song sent.", llInfo);
+				Log(llInfo, "Notification about currently playing song sent.");
 			}
 			else
 			{
 				if (result.empty())
 				{
-					Log("Error while sending notification: " + string(curl_easy_strerror(code)), llInfo);
+					Log(llInfo, "Error while sending notification: %s", curl_easy_strerror(code));
 				}
 				else
 				{
-					Log("Audioscrobbler returned status " + result, llInfo);
+					Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
 				}
 				goto NOTIFICATION_FAILED;
 			}
@@ -173,7 +173,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			NOTIFICATION_FAILED:
 			
 			handshake.Clear(); // handshake probably failed if we are here, so reset it
-			Log("Handshake status reset", llVerbose);
+			Log(llVerbose, "Handshake status reset");
 		}
 		pthread_mutex_unlock(&handshake_lock);
 		notify_about_now_playing = 0;

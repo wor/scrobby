@@ -90,11 +90,11 @@ void MPD::Song::Submit()
 	{
 		if (handshake.status != "OK" || handshake.submission_url.empty())
 		{
-			Log("Problems with handshake status, SongsQueue song at position " + IntoStr(SongsQueue.size()) + "...", llInfo);
+			Log(llInfo, "Problems with handshake status, SongsQueue song at position %d...", SongsQueue.size());
 			goto SUBMISSION_FAILED;
 		}
 		
-		Log("Submitting song...", llInfo);
+		Log(llInfo, "Submitting song...");
 		
 		string result, postdata;
 		CURLcode code;
@@ -132,8 +132,8 @@ void MPD::Song::Submit()
 		curl_free(c_album);
 		curl_free(c_track);
 		
-		Log("URL: " + handshake.submission_url, llVerbose);
-		Log("Post data: " + postdata, llVerbose);
+		Log(llVerbose, "URL: %s", handshake.submission_url.c_str());
+		Log(llVerbose, "Post data: %s", postdata.c_str());
 		
 		curl_easy_setopt(submission, CURLOPT_URL, handshake.submission_url.c_str());
 		curl_easy_setopt(submission, CURLOPT_POST, 1);
@@ -149,17 +149,17 @@ void MPD::Song::Submit()
 		
 		if (result == "OK")
 		{
-			Log("Song submitted.", llInfo);
+			Log(llInfo, "Song submitted.");
 		}
 		else
 		{
 			if (result.empty())
 			{
-				Log("Error while submitting song: " + string(curl_easy_strerror(code)), llInfo);
+				Log(llInfo, "Error while submitting song: %s", curl_easy_strerror(code));
 			}
 			else
 			{
-				Log("Audioscrobbler returned status " + result, llInfo);
+				Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
 			}
 			goto SUBMISSION_FAILED;
 		}
@@ -169,7 +169,7 @@ void MPD::Song::Submit()
 		SUBMISSION_FAILED: // so we cache not submitted song
 		
 		handshake.Clear(); // handshake probably failed if we are here, so reset it
-		Log("Handshake status reset", llVerbose);
+		Log(llVerbose, "Handshake status reset");
 		
 		string cache;
 		string offset = IntoStr(SongsQueue.size());
@@ -215,7 +215,7 @@ void MPD::Song::Submit()
 		cache += offset;
 		cache += "]=";
 		
-		Log("Metadata: " + cache, llVerbose);
+		Log(llVerbose, "Metadata: %s", cache.c_str());
 		
 		curl_free(c_artist);
 		curl_free(c_title);
@@ -224,7 +224,7 @@ void MPD::Song::Submit()
 		
 		Cache(cache);
 		SongsQueue.push_back(cache);
-		Log("Song cached.", llInfo);
+		Log(llInfo, "Song cached.");
 	}
 	pthread_mutex_unlock(&handshake_lock);
 	Clear();
@@ -251,21 +251,21 @@ bool MPD::Song::canBeSubmitted()
 	{
 		if (!itsStartTime)
 		{
-			Log("Song's start time isn't known, not submitting.", llInfo);
+			Log(llInfo, "Song's start time isn't known, not submitting.");
 		}
 		else if (itsSong->time < 30)
 		{
-			Log("Song's length is too short, not submitting.", llInfo);
+			Log(llInfo, "Song's length is too short, not submitting.");
 		}
 		else if (!itsSong->artist || !itsSong->title)
 		{
-			Log("Song has missing tags, not submitting.", llInfo);
+			Log(llInfo, "Song has missing tags, not submitting.");
 		}
 		return false;
 	}
 	else if (itsNoticedPlayback < 4*60 && itsNoticedPlayback < itsSong->time/2)
 	{
-		Log("Noticed playback was too short, not submitting.", llInfo);
+		Log(llInfo, "Noticed playback was too short, not submitting.");
 		return false;
 	}
 	return true;

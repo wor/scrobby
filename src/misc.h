@@ -35,7 +35,7 @@ void ClearCache();
 void GetCachedSongs(std::vector<std::string> &);
 
 void Cache(const std::string &);
-void Log(const std::string &, LogLevel);
+void Log(LogLevel ll, const char *, ...);
 
 void ignore_newlines(std::string &);
 
