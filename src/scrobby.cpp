@@ -28,22 +28,23 @@
 #include "configuration.h"
 #include "misc.h"
 #include "scrobby.h"
+#include "song.h"
 #include "mpdpp.h"
 
 using std::string;
 
 ScrobbyConfig config;
 
-HandshakeResult hr;
-SubmissionCandidate sc;
+Handshake handshake;
+MPD::Song s;
 
 pthread_t mpdconnection_th;
 pthread_t handshake_th;
 
-pthread_mutex_t curl = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t hr_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t curl_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t handshake_lock = PTHREAD_MUTEX_INITIALIZER;
 
-std::vector<string> queue;
+std::vector<string> SongsQueue;
 
 bool scrobby_exit = 0;
 bool notify_about_now_playing = 0;
@@ -80,7 +81,7 @@ int main(int argc, char **argv)
 	if (!Daemonize())
 		std::cerr << "couldn't daemonize!\n";
 	
-	GetCachedSongs(queue);
+	GetCachedSongs(SongsQueue);
 	
 	MPD::Connection *Mpd = new MPD::Connection;
 	
@@ -111,217 +112,13 @@ int main(int argc, char **argv)
 			Mpd->UpdateStatus();
 	}
 	
-	SubmitSong(sc);
+	s.Submit();
 	Log("Shutting down...", llInfo);
 	if (remove(config.file_pid.c_str()) != 0)
 		Log("Couldn't remove pid file!", llInfo);
 	delete Mpd;
 	
 	return 0;
-}
-
-SubmissionCandidate::SubmissionCandidate() : song(0),
-					     started_time(0),
-					     noticed_playback(0),
-					     is_stream(0)
-{
-}
-
-SubmissionCandidate::~SubmissionCandidate()
-{
-	if (song)
-		mpd_freeSong(song);
-}
-
-void SubmissionCandidate::Clear()
-{
-	if (song)
-		mpd_freeSong(song);
-	song = 0;
-	started_time = 0;
-	noticed_playback = 0;
-	is_stream = 0;
-}
-
-bool SubmissionCandidate::canBeSubmitted()
-{
-	if (!started_time || song->time < 30 || !song->artist || !song->title)
-	{
-		if (!started_time)
-		{
-			Log("Song's start time isn't known, not submitting.", llInfo);
-		}
-		else if (song->time < 30)
-		{
-			Log("Song's length is too short, not submitting.", llInfo);
-		}
-		else if (!song->artist || !song->title)
-		{
-			Log("Song has missing tags, not submitting.", llInfo);
-		}
-		return false;
-	}
-	else if (noticed_playback < 4*60 && noticed_playback < song->time/2)
-	{
-		Log("Noticed playback was too short, not submitting.", llInfo);
-		return false;
-	}
-	return true;
-}
-
-void SubmitSong(SubmissionCandidate &sc)
-{
-	if (!sc.song)
-		return;
-	
-	if (sc.is_stream)
-	{
-		sc.song->time = sc.noticed_playback;
-	}
-	
-	pthread_mutex_lock(&hr_lock);
-	if (sc.canBeSubmitted())
-	{
-		if (hr.status != "OK" || hr.submission_url.empty())
-		{
-			Log("Problems with handshake status, queue song at position " + IntoStr(queue.size()) + "...", llInfo);
-			goto SUBMISSION_FAILED;
-		}
-		
-		Log("Submitting song...", llInfo);
-		
-		string result, postdata;
-		CURLcode code;
-		
-		pthread_mutex_lock(&curl);
-		CURL *submission = curl_easy_init();
-		
-		char *c_artist = curl_easy_escape(submission, sc.song->artist, 0);
-		char *c_title = curl_easy_escape(submission, sc.song->title, 0);
-		char *c_album = sc.song->album ? curl_easy_escape(submission, sc.song->album, 0) : NULL;
-		char *c_track = sc.song->track ? curl_easy_escape(submission, sc.song->track, 0) : NULL;
-		
-		postdata = "s=";
-		postdata += hr.session_id;
-		postdata += "&a[0]=";
-		postdata += c_artist;
-		postdata += "&t[0]=";
-		postdata += c_title;
-		postdata += "&i[0]=";
-		postdata += IntoStr(sc.started_time);
-		postdata += "&o[0]=P";
-		postdata += "&r[0]=";
-		postdata += "&l[0]=";
-		postdata += IntoStr(sc.song->time);
-		postdata += "&b[0]=";
-		if (c_album)
-			postdata += c_album;
-		postdata += "&n[0]=";
-		if (c_track)
-			postdata += c_track;
-		postdata += "&m[0]=";
-		
-		curl_free(c_artist);
-		curl_free(c_title);
-		curl_free(c_album);
-		curl_free(c_track);
-		
-		Log("URL: " + hr.submission_url, llVerbose);
-		Log("Post data: " + postdata, llVerbose);
-		
-		curl_easy_setopt(submission, CURLOPT_URL, hr.submission_url.c_str());
-		curl_easy_setopt(submission, CURLOPT_POST, 1);
-		curl_easy_setopt(submission, CURLOPT_POSTFIELDS, postdata.c_str());
-		curl_easy_setopt(submission, CURLOPT_WRITEFUNCTION, write_data);
-		curl_easy_setopt(submission, CURLOPT_WRITEDATA, &result);
-		curl_easy_setopt(submission, CURLOPT_CONNECTTIMEOUT, curl_timeout);
-		code = curl_easy_perform(submission);
-		curl_easy_cleanup(submission);
-		pthread_mutex_unlock(&curl);
-		
-		ignore_newlines(result);
-		
-		if (result == "OK")
-		{
-			Log("Song submitted.", llInfo);
-		}
-		else
-		{
-			if (result.empty())
-			{
-				Log("Error while submitting song: " + string(curl_easy_strerror(code)), llInfo);
-			}
-			else
-			{
-				Log("Audioscrobbler returned status " + result, llInfo);
-			}
-			goto SUBMISSION_FAILED;
-		}
-	}
-	if (0)
-	{
-		SUBMISSION_FAILED: // so we cache not submitted song
-		
-		hr.Clear(); // handshake probably failed if we are here, so reset it
-		Log("Handshake status reset", llVerbose);
-		
-		string cache;
-		string offset = IntoStr(queue.size());
-		
-		char *c_artist = curl_easy_escape(0, sc.song->artist, 0);
-		char *c_title = curl_easy_escape(0, sc.song->title, 0);
-		char *c_album = sc.song->album ? curl_easy_escape(0, sc.song->album, 0) : NULL;
-		char *c_track = sc.song->track ? curl_easy_escape(0, sc.song->track, 0) : NULL;
-		
-		cache = "&a[";
-		cache += offset;
-		cache += "]=";
-		cache += c_artist;
-		cache += "&t[";
-		cache += offset;
-		cache += "]=";
-		cache += c_title;
-		cache += "&i[";
-		cache += offset;
-		cache += "]=";
-		cache += IntoStr(sc.started_time);
-		cache += "&o[";
-		cache += offset;
-		cache += "]=P";
-		cache += "&r[";
-		cache += offset;
-		cache += "]=";
-		cache += "&l[";
-		cache += offset;
-		cache += "]=";
-		cache += IntoStr(sc.song->time);
-		cache += "&b[";
-		cache += offset;
-		cache += "]=";
-		if (c_album)
-			cache += c_album;
-		cache += "&n[";
-		cache += offset;
-		cache += "]=";
-		if (c_track)
-			cache += c_track;
-		cache += "&m[";
-		cache += offset;
-		cache += "]=";
-		
-		Log("Metadata: " + cache, llVerbose);
-		
-		curl_free(c_artist);
-		curl_free(c_title);
-		curl_free(c_album);
-		curl_free(c_track);
-		
-		Cache(cache);
-		queue.push_back(cache);
-		Log("Song cached.", llInfo);
-	}
-	pthread_mutex_unlock(&hr_lock);
-	sc.Clear();
 }
 
 namespace
@@ -345,15 +142,15 @@ namespace
 		handshake_url += "&a=";
 		handshake_url += md5sum((config.lastfm_md5_password.empty() ? md5sum(config.lastfm_password) : config.lastfm_md5_password) + timestamp);
 		
-		pthread_mutex_lock(&curl);
-		CURL *handshake = curl_easy_init();
-		curl_easy_setopt(handshake, CURLOPT_URL, handshake_url.c_str());
-		curl_easy_setopt(handshake, CURLOPT_WRITEFUNCTION, write_data);
-		curl_easy_setopt(handshake, CURLOPT_WRITEDATA, &result);
-		curl_easy_setopt(handshake, CURLOPT_CONNECTTIMEOUT, curl_timeout);
-		code = curl_easy_perform(handshake);
-		curl_easy_cleanup(handshake);
-		pthread_mutex_unlock(&curl);
+		pthread_mutex_lock(&curl_lock);
+		CURL *hs = curl_easy_init();
+		curl_easy_setopt(hs, CURLOPT_URL, handshake_url.c_str());
+		curl_easy_setopt(hs, CURLOPT_WRITEFUNCTION, write_data);
+		curl_easy_setopt(hs, CURLOPT_WRITEDATA, &result);
+		curl_easy_setopt(hs, CURLOPT_CONNECTTIMEOUT, curl_timeout);
+		code = curl_easy_perform(hs);
+		curl_easy_cleanup(hs);
+		pthread_mutex_unlock(&curl_lock);
 		
 		if (code != CURLE_OK)
 		{
@@ -362,18 +159,18 @@ namespace
 		}
 		
 		size_t i = result.find("\n");
-		hr.status = result.substr(0, i);
-		if (hr.status != "OK")
+		handshake.status = result.substr(0, i);
+		if (handshake.status != "OK")
 			return false;
 		result = result.substr(i+1);
 		i = result.find("\n");
-		hr.session_id = result.substr(0, i);
+		handshake.session_id = result.substr(0, i);
 		result = result.substr(i+1);
 		i = result.find("\n");
-		hr.nowplaying_url = result.substr(0, i);
+		handshake.nowplaying_url = result.substr(0, i);
 		result = result.substr(i+1);
 		ignore_newlines(result);
-		hr.submission_url = result;
+		handshake.submission_url = result;
 		return true;
 	}
 	
@@ -385,7 +182,7 @@ namespace
 			int x = 0;
 			while (!Mpd->Connected())
 			{
-				SubmitSong(sc);
+				s.Submit();
 				Log("Connecting to MPD...", llVerbose);
 				Mpd->Disconnect();
 				if (Mpd->Connect())
@@ -410,37 +207,37 @@ namespace
 		int x = 0;
 		while (!scrobby_exit)
 		{
-			if (hr.status != "OK")
+			if (handshake.status != "OK")
 			{
-				pthread_mutex_lock(&hr_lock);
-				hr.Clear();
-				if (send_handshake() && !hr.status.empty())
+				pthread_mutex_lock(&handshake_lock);
+				handshake.Clear();
+				if (send_handshake() && !handshake.status.empty())
 				{
-					Log("Handshake returned " + hr.status, llInfo);
+					Log("Handshake returned " + handshake.status, llInfo);
 				}
-				if (hr.status == "OK")
+				if (handshake.status == "OK")
 				{
 					Log("Connected to Audioscrobbler!", llInfo);
-					if (!queue.empty())
+					if (!SongsQueue.empty())
 					{
 						Log("Queue's not empty, submitting songs...", llInfo);
 						
 						string result, postdata;
 						CURLcode code;
 						
-						pthread_mutex_lock(&curl);
+						pthread_mutex_lock(&curl_lock);
 						CURL *submission = curl_easy_init();
 						
 						postdata = "s=";
-						postdata += hr.session_id;
+						postdata += handshake.session_id;
 						
-						for (std::vector<string>::const_iterator it = queue.begin(); it != queue.end(); it++)
+						for (std::vector<string>::const_iterator it = SongsQueue.begin(); it != SongsQueue.end(); it++)
 							postdata += *it;
 						
-						Log("URL: " + hr.submission_url, llVerbose);
+						Log("URL: " + handshake.submission_url, llVerbose);
 						Log("Post data: " + postdata, llVerbose);
 						
-						curl_easy_setopt(submission, CURLOPT_URL, hr.submission_url.c_str());
+						curl_easy_setopt(submission, CURLOPT_URL, handshake.submission_url.c_str());
 						curl_easy_setopt(submission, CURLOPT_POST, 1);
 						curl_easy_setopt(submission, CURLOPT_POSTFIELDS, postdata.c_str());
 						curl_easy_setopt(submission, CURLOPT_WRITEFUNCTION, write_data);
@@ -448,14 +245,14 @@ namespace
 						curl_easy_setopt(submission, CURLOPT_CONNECTTIMEOUT, curl_timeout);
 						code = curl_easy_perform(submission);
 						curl_easy_cleanup(submission);
-						pthread_mutex_unlock(&curl);
+						pthread_mutex_unlock(&curl_lock);
 						
 						ignore_newlines(result);
 						
 						if (result == "OK")
 						{
-							Log("Number of submitted songs: " + IntoStr(queue.size()), llInfo);
-							queue.clear();
+							Log("Number of submitted songs: " + IntoStr(SongsQueue.size()), llInfo);
+							SongsQueue.clear();
 							ClearCache();
 							x = 0;
 						}
@@ -471,7 +268,7 @@ namespace
 							}
 						}
 					}
-					notify_about_now_playing = !sc.is_stream;
+					notify_about_now_playing = !s.isStream();
 				}
 				else
 				{
@@ -479,7 +276,7 @@ namespace
 					Log("Connection refused, retrieving in " + IntoStr(10*x) + " seconds...", llInfo);
 					sleep(10*x);
 				}
-				pthread_mutex_unlock(&hr_lock);
+				pthread_mutex_unlock(&handshake_lock);
 			}
 			sleep(1);
 		}

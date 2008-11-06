@@ -24,17 +24,18 @@
 #include "callback.h"
 #include "misc.h"
 #include "scrobby.h"
+#include "song.h"
 
 using std::string;
 
 MPD::State old_state = MPD::psUnknown;
 MPD::State current_state = MPD::psUnknown;
 
-extern HandshakeResult hr;
-extern SubmissionCandidate sc;
+extern Handshake handshake;
+extern MPD::Song s;
 
-extern pthread_mutex_t curl;
-extern pthread_mutex_t hr_lock;
+extern pthread_mutex_t curl_lock;
+extern pthread_mutex_t handshake_lock;
 
 extern bool notify_about_now_playing;
 
@@ -57,44 +58,43 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 	{
 		if (!Mpd->GetElapsedTime())
 			changed.SongID = 1;
-		sc.noticed_playback++;
+		s.Playback()++;
 	}
 	if (changed.SongID || (old_state == MPD::psPlay && current_state == MPD::psStop))
 	{
-		SubmitSong(sc);
+		s.Submit();
 		
 		// in this case allow entering only once
 		if (old_state == MPD::psPlay && current_state == MPD::psStop)
 			old_state = MPD::psUnknown;
 		
-		if (Mpd->GetElapsedTime()-sc.noticed_playback < 5)
-			sc.started_time = time(NULL);
+		if (Mpd->GetElapsedTime() < 5)
+			s.SetStartTime();
 		
 		if (current_state == MPD::psPlay || current_state == MPD::psPause)
 		{
 			do
-				sc.song = Mpd->CurrentSong();
-			while (!sc.song);
-			sc.is_stream = strncmp("http://", sc.song->file, 7) == 0;
-			notify_about_now_playing = !sc.is_stream;
+				s.SetData(Mpd->CurrentSong());
+			while (!s.Data());
+			notify_about_now_playing = !s.isStream();
 		}
 	}
 	if (notify_about_now_playing)
 	{
-		pthread_mutex_lock(&hr_lock);
-		if (sc.song && (!sc.song->artist || !sc.song->title))
+		pthread_mutex_lock(&handshake_lock);
+		if (s.Data() && (!s.Data()->artist || !s.Data()->title))
 		{
 			Log("Playing song with missing tags detected.", llInfo);
 		}
-		else if (sc.song && sc.song->time <= 0)
+		else if (s.Data() && s.Data()->time <= 0)
 		{
 			Log("Playing song with unknown length detected.", llInfo);
 		}
-		else if (sc.song && sc.song->artist && sc.song->title)
+		else if (s.Data() && s.Data()->artist && s.Data()->title)
 		{
-			Log("Playing song detected: " + string(sc.song->artist) + " - " + string(sc.song->title), llVerbose);
+			Log("Playing song detected: " + string(s.Data()->artist) + " - " + string(s.Data()->title), llVerbose);
 			
-			if (hr.status == "OK" && !hr.nowplaying_url.empty())
+			if (handshake.status == "OK" && !handshake.nowplaying_url.empty())
 			{
 				Log("Sending now playing notification...", llInfo);
 			}
@@ -107,16 +107,16 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			string result, postdata;
 			CURLcode code;
 			
-			pthread_mutex_lock(&curl);
+			pthread_mutex_lock(&curl_lock);
 			CURL *np_notification = curl_easy_init();
 			
-			char *c_artist = curl_easy_escape(np_notification, sc.song->artist, 0);
-			char *c_title = curl_easy_escape(np_notification, sc.song->title, 0);
-			char *c_album = sc.song->album ? curl_easy_escape(np_notification, sc.song->album, 0) : NULL;
-			char *c_track = sc.song->track ? curl_easy_escape(np_notification, sc.song->track, 0) : NULL;
+			char *c_artist = curl_easy_escape(np_notification, s.Data()->artist, 0);
+			char *c_title = curl_easy_escape(np_notification, s.Data()->title, 0);
+			char *c_album = s.Data()->album ? curl_easy_escape(np_notification, s.Data()->album, 0) : NULL;
+			char *c_track = s.Data()->track ? curl_easy_escape(np_notification, s.Data()->track, 0) : NULL;
 			
 			postdata = "s=";
-			postdata += hr.session_id;
+			postdata += handshake.session_id;
 			postdata += "&a=";
 			postdata += c_artist;
 			postdata += "&t=";
@@ -125,7 +125,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			if (c_album)
 				postdata += c_album;
 			postdata += "&l=";
-			postdata += IntoStr(sc.song->time);
+			postdata += IntoStr(s.Data()->time);
 			postdata += "&n=";
 			if (c_track)
 				postdata += c_track;
@@ -136,10 +136,10 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			curl_free(c_album);
 			curl_free(c_track);
 			
-			Log("URL: " + hr.nowplaying_url, llVerbose);
+			Log("URL: " + handshake.nowplaying_url, llVerbose);
 			Log("Post data: " + postdata, llVerbose);
 			
-			curl_easy_setopt(np_notification, CURLOPT_URL, hr.nowplaying_url.c_str());
+			curl_easy_setopt(np_notification, CURLOPT_URL, handshake.nowplaying_url.c_str());
 			curl_easy_setopt(np_notification, CURLOPT_POST, 1);
 			curl_easy_setopt(np_notification, CURLOPT_POSTFIELDS, postdata.c_str());
 			curl_easy_setopt(np_notification, CURLOPT_WRITEFUNCTION, write_data);
@@ -147,7 +147,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			curl_easy_setopt(np_notification, CURLOPT_CONNECTTIMEOUT, curl_timeout);
 			code = curl_easy_perform(np_notification);
 			curl_easy_cleanup(np_notification);
-			pthread_mutex_unlock(&curl);
+			pthread_mutex_unlock(&curl_lock);
 			
 			ignore_newlines(result);
 			
@@ -172,10 +172,10 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		{
 			NOTIFICATION_FAILED:
 			
-			hr.Clear(); // handshake probably failed if we are here, so reset it
+			handshake.Clear(); // handshake probably failed if we are here, so reset it
 			Log("Handshake status reset", llVerbose);
 		}
-		pthread_mutex_unlock(&hr_lock);
+		pthread_mutex_unlock(&handshake_lock);
 		notify_about_now_playing = 0;
 	}
 }

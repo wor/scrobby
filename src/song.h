@@ -18,30 +18,34 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
-#ifndef _SCROBBY_H
-#define _SCROBBY_H
+#ifndef _SONG_H
+#define _SONG_H
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
+#include "libmpdclient.h"
 
-const int curl_timeout = 10;
-
-struct Handshake
+namespace MPD
 {
-	void Clear()
+	class Song
 	{
-		status.clear();
-		session_id.clear();
-		nowplaying_url.clear();
-		submission_url.clear();
-	}
-	
-	std::string status;
-	std::string session_id;
-	std::string nowplaying_url;
-	std::string submission_url;
-};
+		public:
+			Song();
+			~Song();
+			void Clear();
+			void SetData(mpd_Song *);
+			void SetStartTime();
+			void Submit();
+			bool isStream();
+			int & Playback();
+			const mpd_Song *& Data();
+		
+		private:
+			bool canBeSubmitted();
+		
+			mpd_Song *itsSong;
+			time_t itsStartTime;
+			int itsNoticedPlayback;
+			bool itsIsStream;
+	};
+}
 
 #endif
-
