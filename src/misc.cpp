@@ -32,12 +32,8 @@ pthread_mutex_t log_file = PTHREAD_MUTEX_INITIALIZER;
 
 size_t write_data(char *buffer, size_t size, size_t nmemb, std::string data)
 {
-	int result = 0;
-	if (buffer)
-	{
-		data += buffer;
-		result = size*nmemb;
-	}
+	size_t result = size * nmemb;
+	data.append(buffer, result);
 	return result;
 }
 
