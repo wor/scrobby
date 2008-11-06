@@ -82,7 +82,7 @@ void MPD::Connection::Disconnect()
 
 void MPD::Connection::SetHostname(const string &host)
 {
-	unsigned at = host.find("@");
+	size_t at = host.find("@");
 	if (at != string::npos)
 	{
 		itsPassword = host.substr(0, at);

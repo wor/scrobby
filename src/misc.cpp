@@ -105,7 +105,7 @@ void Log(const std::string &s, LogLevel ll)
 
 void ignore_newlines(std::string &s)
 {
-	for (unsigned i = s.find("\n"); i != std::string::npos; i = s.find("\n"))
+	for (size_t i = s.find("\n"); i != std::string::npos; i = s.find("\n"))
 		s.replace(i, 1, "");
 }
 

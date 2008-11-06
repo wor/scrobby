@@ -361,7 +361,7 @@ namespace
 			return false;
 		}
 		
-		int i = result.find("\n");
+		size_t i = result.find("\n");
 		hr.status = result.substr(0, i);
 		if (hr.status != "OK")
 			return false;
