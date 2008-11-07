@@ -114,7 +114,6 @@ void ignore_newlines(std::string &s)
 
 std::string md5sum(const std::string &s)
 {
-	char result[32];
 	unsigned char md_value[EVP_MAX_MD_SIZE];
 	unsigned int md_len;
 	
@@ -124,8 +123,10 @@ std::string md5sum(const std::string &s)
 	EVP_DigestFinal_ex(&mdctx, md_value, &md_len);
 	EVP_MD_CTX_cleanup(&mdctx);
 	
+	char result[md_len*2+1];
 	for (unsigned i = 0; i < md_len; i++)
 		sprintf(&result[i*2], "%02x", md_value[i]);
+	result[md_len*2] = 0;
 	
 	return result;
 }
