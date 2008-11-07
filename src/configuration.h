@@ -23,7 +23,7 @@
 
 #include <string>
 
-enum LogLevel { llNone, llInfo, llVerbose };
+enum LogLevel { llUndefined, llNone, llInfo, llVerbose };
 
 struct ScrobbyConfig
 {
@@ -32,6 +32,7 @@ struct ScrobbyConfig
 	int mpd_port;
 	int mpd_timeout;
 	
+	std::string file_config;
 	std::string file_log;
 	std::string file_pid;
 	std::string file_cache;
@@ -41,8 +42,10 @@ struct ScrobbyConfig
 	std::string lastfm_md5_password;
 	
 	LogLevel log_level;
+	bool daemonize;
 };
 
+void ParseArgv(ScrobbyConfig &, int, char **);
 bool CheckFiles(ScrobbyConfig &);
 void DefaultConfiguration(ScrobbyConfig &);
 bool ReadConfiguration(ScrobbyConfig &, const std::string &file);

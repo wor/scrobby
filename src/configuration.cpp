@@ -18,8 +18,14 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <fstream>
+
+#ifdef HAVE_CONFIG_H
+# include <config.h>
+#endif
 
 #include "configuration.h"
 #include "misc.h"
@@ -66,6 +72,49 @@ namespace
 		return result;
 	}
 	
+}
+
+void ParseArgv(ScrobbyConfig &conf, int argc, char **argv)
+{
+	for (int i = 1; i < argc; i++)
+	{
+		if (strcmp(argv[i], "--help") == 0)
+		{
+			std::cout
+			<< "usage:\n"
+			<< "scrobby [options] <conf file>\n"
+			<< "scrobby [options] (search for ~/.scrobbyconf, then /etc/scrobby.conf)\n\n"
+			<< "options:\n"
+			<< "   --help                show this help message\n"
+			<< "   --no-daemon           do not detach from console\n"
+			<< "   --quiet               do not log anything\n"
+			<< "   --verbose             verbose logging\n"
+			<< "   --version             print version information\n"
+			;
+			exit(0);
+		}
+		else if (strcmp(argv[i], "--no-daemon") == 0)
+		{
+			conf.daemonize = false;
+		}
+		else if (strcmp(argv[i], "--quiet") == 0)
+		{
+			conf.log_level = llNone;
+		}
+		else if (strcmp(argv[i], "--verbose") == 0)
+		{
+			conf.log_level = llVerbose;
+		}
+		else if (strcmp(argv[i], "--version") == 0)
+		{
+			std::cout << "scrobby - an audioscrobbler mpd client, version "VERSION"\n";
+			exit(0);
+		}
+		else
+		{
+			conf.file_config = argv[i];
+		}
+	}
 }
 
 bool CheckFiles(ScrobbyConfig &conf)
@@ -137,7 +186,8 @@ void DefaultConfiguration(ScrobbyConfig &conf)
 	conf.file_pid = "/var/run/scrobby.pid";
 	conf.file_cache = "/var/cache/scrobby/scrobby.cache";
 	
-	conf.log_level = llInfo;
+	conf.log_level = llUndefined;
+	conf.daemonize = true;
 }
 
 bool ReadConfiguration(ScrobbyConfig &conf, const string &file)
@@ -207,7 +257,7 @@ bool ReadConfiguration(ScrobbyConfig &conf, const string &file)
 			}
 			else if (line.find("log_level") != string::npos)
 			{
-				if (!v.empty())
+				if (!v.empty() && conf.log_level == llUndefined)
 					conf.log_level = IntoLogLevel(v);
 			}
 		}

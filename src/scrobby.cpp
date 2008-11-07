@@ -19,6 +19,7 @@
  ***************************************************************************/
 
 #include <csignal>
+#include <cstdlib>
 #include <curl/curl.h>
 #include <pthread.h>
 #include <iostream>
@@ -60,14 +61,31 @@ namespace
 
 int main(int argc, char **argv)
 {
-	const string config_file = argc > 1 ? argv[1] : "/etc/scrobby.conf";
-	
 	DefaultConfiguration(config);
 	
-	if (!ReadConfiguration(config, config_file))
+	if (argc > 1)
 	{
-		std::cerr << "cannot read configuration file: " << config_file << std::endl;
-		return 1;
+		ParseArgv(config, argc, argv);
+	}
+	if (!config.file_config.empty())
+	{
+		if (!ReadConfiguration(config, config.file_config))
+		{
+			std::cerr << "cannot read configuration file: " << config.file_config << std::endl;
+			return 1;
+		}
+	}
+	else if (!ReadConfiguration(config, string(getenv("HOME") ? getenv("HOME") : "") + "/.scrobbyconf"))
+	{
+		if (!ReadConfiguration(config, "/etc/scrobby.conf"))
+		{
+			std::cerr << "default configuration files not found!\n";
+			return 1;
+		}
+	}
+	if (config.log_level == llUndefined)
+	{
+		config.log_level = llInfo;
 	}
 	if (config.lastfm_user.empty() || (config.lastfm_md5_password.empty() && config.lastfm_password.empty()))
 	{
@@ -78,8 +96,11 @@ int main(int argc, char **argv)
 	{
 		return 1;
 	}
-	if (!Daemonize())
-		std::cerr << "couldn't daemonize!\n";
+	if (config.daemonize)
+	{
+		if (!Daemonize())
+			std::cerr << "couldn't daemonize!\n";
+	}
 	
 	GetCachedSongs(SongsQueue);
 	
