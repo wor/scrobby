@@ -27,8 +27,6 @@
 #
 #mpd_port = "6600"
 #
-#mpd_password = ""
-#
 #mpd_timeout = "15"
 #
 ### last.fm settings

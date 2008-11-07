@@ -110,8 +110,6 @@ int main(int argc, char **argv)
 		Mpd->SetHostname(config.mpd_host);
 	if (config.mpd_port != 6600)
 		Mpd->SetPort(config.mpd_port);
-	if (!config.mpd_password.empty())
-		Mpd->SetPassword(config.mpd_password);
 	
 	Mpd->SetTimeout(config.mpd_timeout);
 	Mpd->SetStatusUpdater(ScrobbyStatusChanged, NULL);

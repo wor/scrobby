@@ -210,11 +210,6 @@ bool ReadConfiguration(ScrobbyConfig &conf, const string &file)
 				if (!line.empty())
 					conf.mpd_host = v;
 			}
-			else if (line.find("mpd_password") != string::npos)
-			{
-				if (!v.empty())
-					conf.mpd_password = v;
-			}
 			else if (line.find("mpd_port") != string::npos)
 			{
 				if (!v.empty())
