@@ -23,8 +23,7 @@
 
 #include "libmpdclient.h"
 
-namespace MPD
-{
+namespace MPD {
 	class Song
 	{
 		public:

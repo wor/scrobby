@@ -24,8 +24,7 @@
 #include <string>
 #include "libmpdclient.h"
 
-namespace MPD
-{
+namespace MPD {
 	enum State { psUnknown, psStop, psPlay, psPause };
 	
 	struct StatusChanges

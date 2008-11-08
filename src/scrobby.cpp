@@ -50,8 +50,7 @@ std::vector<string> SongsQueue;
 bool scrobby_exit = 0;
 bool notify_about_now_playing = 0;
 
-namespace
-{
+namespace {
 	void signal_handler(int);
 	bool send_handshake();
 	
@@ -140,8 +139,7 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-namespace
-{
+namespace {
 	void signal_handler(int)
 	{
 		scrobby_exit = 1;

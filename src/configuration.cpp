@@ -32,8 +32,7 @@
 
 using std::string;
 
-namespace
-{
+namespace {
 	std::string GetLineValue(const string &line, char a = '"', char b = '"')
 	{
 		int i = 0;
@@ -71,7 +70,6 @@ namespace
 		}
 		return result;
 	}
-	
 }
 
 void ParseArgv(ScrobbyConfig &conf, int argc, char **argv)
