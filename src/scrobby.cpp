@@ -204,13 +204,13 @@ namespace {
 				Mpd->Disconnect();
 				if (Mpd->Connect())
 				{
-					Log(llInfo, "Connected to %s !", config.mpd_host.c_str());
+					Log(llInfo, "Connected to MPD at %s !", config.mpd_host.c_str());
 					x = 0;
 				}
 				else
 				{
 					x++;
-					Log(llInfo, "Cannot connect, retrieving in %d seconds...", 10*x);
+					Log(llInfo, "Cannot connect to MPD, retrieving in %d seconds...", 10*x);
 					sleep(10*x);
 				}
 			}
@@ -290,7 +290,7 @@ namespace {
 				else
 				{
 					x++;
-					Log(llInfo, "Connection refused, retrieving in %d seconds...", 10*x);
+					Log(llInfo, "Connection to Audioscrobbler refused, retrieving in %d seconds...", 10*x);
 					sleep(10*x);
 				}
 				pthread_mutex_unlock(&handshake_lock);

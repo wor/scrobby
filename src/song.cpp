@@ -67,7 +67,6 @@ void MPD::Song::SetData(mpd_Song *song)
 		mpd_freeSong(itsSong);
 	itsSong = song;
 	itsIsStream = strncmp("http://", itsSong->file, 7) == 0;
-	
 }
 
 void MPD::Song::SetStartTime()
