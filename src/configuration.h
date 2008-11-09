@@ -27,6 +27,8 @@ enum LogLevel { llUndefined, llNone, llInfo, llVerbose };
 
 struct ScrobbyConfig
 {
+	std::string dedicated_user;
+	
 	std::string mpd_host;
 	int mpd_port;
 	int mpd_timeout;

@@ -1,7 +1,8 @@
-#######################################
-## scrobby sample configuration file ##
-## (copy it to /etc/scrobby.conf)    ##
-#######################################
+###############################################
+## scrobby sample configuration file (copy   ##
+## it to /etc/scrobby.conf or ~/.scrobbyconf ##
+## and adjust settings to suit your needs)   ##
+###############################################
 #
 ##
 ## Note: you can specify a password
@@ -9,15 +10,25 @@
 ## md5 algorithm.
 ##
 #
+### user settings
+##
+## Note: If run as root, scrobby will drop
+## root privileges and keep running as below
+## user. If not specified, scrobby will keep
+## running as root (not recommended)
+##
+#
+#dedicated_user = ""
+#
 ### log settings
 #
 #log_level = "info" (none/info/verbose)
 #
 ### files settings
 #
-#log_file = "/var/log/scrobby.log"
+#log_file = "/var/log/scrobby/scrobby.log"
 #
-#pid_file = "/var/run/scrobby.pid"
+#pid_file = "/var/run/scrobby/scrobby.pid"
 #
 #cache_file = "/var/cache/scrobby/scrobby.cache"
 #

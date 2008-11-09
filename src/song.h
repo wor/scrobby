@@ -33,9 +33,9 @@ namespace MPD {
 			void SetData(mpd_Song *);
 			void SetStartTime();
 			void Submit();
-			bool isStream();
+			bool isStream() const;
 			int & Playback();
-			const mpd_Song *& Data();
+			const mpd_Song *& Data() const;
 		
 		private:
 			bool canBeSubmitted();

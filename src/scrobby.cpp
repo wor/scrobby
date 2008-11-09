@@ -91,6 +91,7 @@ int main(int argc, char **argv)
 		std::cerr << "last.fm user/password is not set.\n";
 		return 1;
 	}
+	ChangeToUser();
 	if (!CheckFiles(config))
 	{
 		return 1;

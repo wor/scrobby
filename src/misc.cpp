@@ -18,10 +18,14 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 
+#include <cerrno>
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <openssl/evp.h>
+#include <pwd.h>
 
 #include "configuration.h"
 #include "misc.h"
@@ -35,6 +39,29 @@ size_t write_data(char *buffer, size_t size, size_t nmemb, std::string data)
 	size_t result = size * nmemb;
 	data.append(buffer, result);
 	return result;
+}
+
+void ChangeToUser()
+{
+	if (config.dedicated_user.empty() || getuid() != 0)
+		return;
+	
+	passwd *userinfo;
+	if (!(userinfo = getpwnam(config.dedicated_user.c_str())))
+	{
+		std::cerr << "user " << config.dedicated_user << " not found!\n";
+		exit(1);
+	}
+	if (setgid(userinfo->pw_gid) == -1)
+	{
+		std::cerr << "cannot set gid for user " << config.dedicated_user << ": " << strerror(errno) << std::endl;
+		exit(1);
+	}
+	if (setuid(userinfo->pw_uid) == -1)
+	{
+		std::cerr << "cannot change to uid of user " << config.dedicated_user << ": " << strerror(errno) << std::endl;
+		exit(1);
+	}
 }
 
 bool Daemonize()

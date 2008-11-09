@@ -229,7 +229,7 @@ void MPD::Song::Submit()
 	Clear();
 }
 
-bool MPD::Song::isStream()
+bool MPD::Song::isStream() const
 {
 	return itsIsStream;
 }
@@ -239,7 +239,7 @@ int & MPD::Song::Playback()
 	return itsNoticedPlayback;
 }
 
-const mpd_Song *& MPD::Song::Data()
+const mpd_Song *& MPD::Song::Data() const
 {
 	return (const mpd_Song *&)itsSong;
 }

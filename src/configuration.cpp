@@ -180,8 +180,8 @@ void DefaultConfiguration(ScrobbyConfig &conf)
 	conf.mpd_port = 6600;
 	conf.mpd_timeout = 15;
 	
-	conf.file_log = "/var/log/scrobby.log";
-	conf.file_pid = "/var/run/scrobby.pid";
+	conf.file_log = "/var/log/scrobby/scrobby.log";
+	conf.file_pid = "/var/run/scrobby/scrobby.pid";
 	conf.file_cache = "/var/cache/scrobby/scrobby.cache";
 	
 	conf.log_level = llUndefined;
@@ -203,7 +203,12 @@ bool ReadConfiguration(ScrobbyConfig &conf, const string &file)
 		{
 			v = GetLineValue(line);
 			
-			if (line.find("mpd_host") != string::npos)
+			if (line.find("dedicated_user") != string::npos)
+			{
+				if (!line.empty())
+					conf.dedicated_user = v;
+			}
+			else if (line.find("mpd_host") != string::npos)
 			{
 				if (!line.empty())
 					conf.mpd_host = v;

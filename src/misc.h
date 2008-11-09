@@ -29,6 +29,8 @@
 
 size_t write_data(char *, size_t, size_t, std::string);
 
+void ChangeToUser();
+
 bool Daemonize();
 
 void ClearCache();
