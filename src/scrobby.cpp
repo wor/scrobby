@@ -292,11 +292,10 @@ namespace {
 				{
 					x++;
 					Log(llInfo, "Connection to Audioscrobbler refused, retrieving in %d seconds...", 10*x);
-					sleep(10*x);
 				}
 				pthread_mutex_unlock(&handshake_lock);
 			}
-			sleep(1);
+			sleep(!x ? 1 : 10*x);
 		}
 		pthread_exit(NULL);
 	}
