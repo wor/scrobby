@@ -73,10 +73,8 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		
 		if (current_state == MPD::psPlay || current_state == MPD::psPause)
 		{
-			do
-				s.SetData(Mpd->CurrentSong());
-			while (!s.Data());
-			notify_about_now_playing = !s.isStream();
+			s.SetData(Mpd->CurrentSong());
+			notify_about_now_playing = s.Data() && !s.isStream();
 		}
 	}
 	if (notify_about_now_playing)
