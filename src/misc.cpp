@@ -62,6 +62,7 @@ void ChangeToUser()
 		std::cerr << "cannot change to uid of user " << config.dedicated_user << ": " << strerror(errno) << std::endl;
 		exit(1);
 	}
+	config.user_home_folder = userinfo->pw_dir ? userinfo->pw_dir : "";
 }
 
 bool Daemonize()

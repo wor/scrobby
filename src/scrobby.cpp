@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 			return 1;
 		}
 	}
-	else if (!ReadConfiguration(config, string(getenv("HOME") ? getenv("HOME") : "") + "/.scrobbyconf"))
+	else if (!ReadConfiguration(config, config.user_home_folder + "/.scrobbyconf"))
 	{
 		if (!ReadConfiguration(config, "/etc/scrobby.conf"))
 		{

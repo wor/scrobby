@@ -27,6 +27,7 @@ enum LogLevel { llUndefined, llNone, llInfo, llVerbose };
 
 struct ScrobbyConfig
 {
+	std::string user_home_folder;
 	std::string dedicated_user;
 	
 	std::string mpd_host;

@@ -53,6 +53,12 @@ namespace {
 			return "";
 	}
 	
+	void HomeFolder(const ScrobbyConfig &conf, string &s)
+	{
+		if (s[0] == '~')
+			s.replace(0, 1, conf.user_home_folder);
+	}
+	
 	LogLevel IntoLogLevel(const string &value)
 	{
 		LogLevel result = llInfo;
@@ -176,6 +182,8 @@ bool CheckFiles(ScrobbyConfig &conf)
 
 void DefaultConfiguration(ScrobbyConfig &conf)
 {
+	conf.user_home_folder = getenv("HOME") ? getenv("HOME") : "";
+	
 	conf.mpd_host = "localhost";
 	conf.mpd_port = 6600;
 	conf.mpd_timeout = 15;
@@ -226,17 +234,26 @@ bool ReadConfiguration(ScrobbyConfig &conf, const string &file)
 			else if (line.find("log_file") != string::npos)
 			{
 				if (!v.empty())
+				{
+					HomeFolder(conf, v);
 					conf.file_log = v;
+				}
 			}
 			else if (line.find("pid_file") != string::npos)
 			{
 				if (!v.empty())
+				{
+					HomeFolder(conf, v);
 					conf.file_pid = v;
+				}
 			}
 			else if (line.find("cache_file") != string::npos)
 			{
 				if (!v.empty())
+				{
+					HomeFolder(conf, v);
 					conf.file_cache = v;
+				}
 			}
 			else if (line.find("lastfm_user") != string::npos)
 			{
