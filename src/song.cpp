@@ -89,7 +89,7 @@ void MPD::Song::Submit()
 	{
 		if (handshake.status != "OK" || handshake.submission_url.empty())
 		{
-			Log(llInfo, "Problems with handshake status, SongsQueue song at position %d...", SongsQueue.size());
+			Log(llInfo, "Problems with handshake status, queue song at position %d...", SongsQueue.size());
 			goto SUBMISSION_FAILED;
 		}
 		
