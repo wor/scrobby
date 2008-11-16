@@ -62,6 +62,8 @@ namespace MPD {
 			
 			State GetState() const { return isConnected && itsCurrentStatus ? (State)itsCurrentStatus->state : psUnknown; }
 			int GetElapsedTime() const { return isConnected && itsCurrentStatus ? itsCurrentStatus->elapsedTime : -1; }
+			int GetCrossfade() const { return isConnected && itsCurrentStatus ? itsCurrentStatus->crossfade : -1; }
+			int GetPlaylistLength() const { return isConnected && itsCurrentStatus ? itsCurrentStatus->playlistLength : -1; }
 			
 			const std::string & GetErrorMessage() const { return itsErrorMessage; }
 			int GetErrorCode() const { return itsErrorCode; }
