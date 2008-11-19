@@ -57,7 +57,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 	if (changed.ElapsedTime)
 	{
 		static int crossfade;
-		if (Mpd->GetPlaylistLength() == 1 && Mpd->GetElapsedTime() == ((crossfade = Mpd->GetCrossfade()) ? crossfade : 0 ))
+		if (Mpd->GetElapsedTime() == ((crossfade = Mpd->GetCrossfade()) ? crossfade : 0 ))
 			changed.SongID = 1;
 		s.Playback()++;
 	}
