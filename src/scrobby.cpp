@@ -195,9 +195,9 @@ namespace {
 	void *mpdconnection_handler(void *data)
 	{
 		MPD::Connection *Mpd = static_cast<MPD::Connection *>(data);
+		int x = 0;
 		while (!scrobby_exit)
 		{
-			int x = 0;
 			while (!Mpd->Connected())
 			{
 				s.Submit();
