@@ -70,7 +70,7 @@ bool Daemonize()
 	if (daemon(0, 0) < 0)
 		return false;
 	
-	std::ofstream f(config.file_pid.c_str(), std::ios_base::app);
+	std::ofstream f(config.file_pid.c_str(), std::ios_base::trunc);
 	if (f.is_open())
 	{
 		pid_t pid = getpid();

@@ -9,10 +9,19 @@ AC_LANG_CPLUSPLUS
 AC_PROG_CXX
 AM_PROG_LIBTOOL
 
+
+dnl if host is freebsd, then add -lkvm to the list of libraries
+case $host_os in
+  *freebsd*) LDFLAGS="$LDFLAGS -lkvm" ;;
+esac
+
 dnl ========================
 dnl = checking for openssl =
 dnl ========================
-PKG_CHECK_MODULES([libssl], libssl, , AC_MSG_ERROR([libssl library is required]))
+PKG_CHECK_MODULES([libssl], libssl, , 
+		  AC_CHECK_LIB(ssl, EVP_DigestInit_ex, [
+		       	libssl_LIBS="-lssl"
+			libssl_CFLAGS="" ], AC_MSG_ERROR([libssl library is required])))
 AC_SUBST(libssl_CFLAGS)
 AC_SUBST(libssl_LIBS)
 CPPFLAGS="$CPPFLAGS $libssl_CFLAGS"
@@ -27,7 +36,8 @@ AC_CHECK_HEADERS([pthread.h], , AC_MSG_ERROR([missing pthread.h header]))
 AC_PATH_PROG(CURL_CONFIG, curl-config)
 if test "$CURL_CONFIG" != "" ; then
 	CPPFLAGS="$CPPFLAGS `$CURL_CONFIG --cflags`"
-	AC_CHECK_LIB(curl, curl_easy_init, LDFLAGS="$LDFLAGS `$CURL_CONFIG --libs`", AC_MSG_ERROR([curl library is required]))
+	LDFLAGS="$LDFLAGS `$CURL_CONFIG --libs`"
+	AC_CHECK_LIB(curl, curl_easy_init, , AC_MSG_ERROR([curl library is required]))
 	AC_CHECK_HEADERS([curl/curl.h], , AC_MSG_ERROR([missing curl.h header]))
 else
 	AC_MSG_ERROR([curl-config executable is missing])
