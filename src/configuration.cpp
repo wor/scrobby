@@ -162,35 +162,34 @@ bool CheckFiles(ScrobbyConfig &conf)
 		}
 		else
 		{
-#ifdef __linux__
-		  struct stat stat_pid;
-		  std::ostringstream proc_file;
-		  proc_file << "/proc/" << pid << std::ends;
-		  if(!(stat(proc_file.str().c_str(),&stat_pid) == -1 &&
-		       errno == ENOENT))
-		    {
-#elif defined(__FreeBSD__)
-		  char kvm_errbuf[_POSIX2_LINE_MAX];
-		  kvm_t* hkvm;
-		  int cnt = 0;
-		  struct kinfo_proc* proc;
-
-		  hkvm = kvm_openfiles(NULL, _PATH_DEVNULL, NULL, O_RDONLY, kvm_errbuf);
-		  if(hkvm)
-		    {
-		      proc = kvm_getprocs(hkvm, KERN_PROC_PID, pid, &cnt);
-		      kvm_close(hkvm);
-		    }
-		  else
-		    {
-		      std::cerr << "kvm_openfiles failed with message:" << std::endl << kvm_errbuf << std::endl;
-		    }
-		  if(cnt >= 1)
-		    {
-#endif
-			std::cerr << "scrobby is already running with PID " << pid << "!\n";
-			return false;
-		    }
+#			ifdef __linux__
+			struct stat stat_pid;
+			std::ostringstream proc_file;
+			proc_file << "/proc/" << pid << std::ends;
+			if (!(stat(proc_file.str().c_str(), &stat_pid) == -1 && errno == ENOENT))
+			{
+#			elif defined(__FreeBSD__)
+			char kvm_errbuf[_POSIX2_LINE_MAX];
+			kvm_t *hkvm;
+			int cnt = 0;
+			struct kinfo_proc *proc;
+			
+			hkvm = kvm_openfiles(NULL, _PATH_DEVNULL, NULL, O_RDONLY, kvm_errbuf);
+			if (hkvm)
+			{
+				proc = kvm_getprocs(hkvm, KERN_PROC_PID, pid, &cnt);
+				kvm_close(hkvm);
+			}
+			else
+			{
+				std::cerr << "kvm_openfiles failed with message:" << std::endl << kvm_errbuf << std::endl;
+			}
+			if (cnt >= 1)
+			{
+#			endif
+				std::cerr << "scrobby is already running with PID " << pid << "!\n";
+				return false;
+			}
 		}
 	}
 	
