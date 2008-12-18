@@ -167,7 +167,6 @@ bool CheckFiles(ScrobbyConfig &conf)
 			std::ostringstream proc_file;
 			proc_file << "/proc/" << pid << std::ends;
 			if (!(stat(proc_file.str().c_str(), &stat_pid) == -1 && errno == ENOENT))
-			{
 #			elif defined(__FreeBSD__)
 			char kvm_errbuf[_POSIX2_LINE_MAX];
 			kvm_t *hkvm;
@@ -185,8 +184,8 @@ bool CheckFiles(ScrobbyConfig &conf)
 				std::cerr << "kvm_openfiles failed with message:" << std::endl << kvm_errbuf << std::endl;
 			}
 			if (cnt >= 1)
-			{
 #			endif
+			{
 				std::cerr << "scrobby is already running with PID " << pid << "!\n";
 				return false;
 			}
