@@ -134,6 +134,8 @@ void MPD::Song::Submit()
 		Log(llVerbose, "URL: %s", handshake.submission_url.c_str());
 		Log(llVerbose, "Post data: %s", postdata.c_str());
 		
+		curl_easy_setopt(submission, CURLOPT_DNS_CACHE_TIMEOUT, 0);
+		curl_easy_setopt(submission, CURLOPT_NOSIGNAL, 1);
 		curl_easy_setopt(submission, CURLOPT_URL, handshake.submission_url.c_str());
 		curl_easy_setopt(submission, CURLOPT_POST, 1);
 		curl_easy_setopt(submission, CURLOPT_POSTFIELDS, postdata.c_str());

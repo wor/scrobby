@@ -138,6 +138,8 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			Log(llVerbose, "URL: %s", handshake.nowplaying_url.c_str());
 			Log(llVerbose, "Post data: %s", postdata.c_str());
 			
+			curl_easy_setopt(np_notification, CURLOPT_DNS_CACHE_TIMEOUT, 0);
+			curl_easy_setopt(np_notification, CURLOPT_NOSIGNAL, 1);
 			curl_easy_setopt(np_notification, CURLOPT_URL, handshake.nowplaying_url.c_str());
 			curl_easy_setopt(np_notification, CURLOPT_POST, 1);
 			curl_easy_setopt(np_notification, CURLOPT_POSTFIELDS, postdata.c_str());
