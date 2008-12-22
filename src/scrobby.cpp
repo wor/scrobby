@@ -47,10 +47,11 @@ pthread_mutex_t handshake_lock = PTHREAD_MUTEX_INITIALIZER;
 
 std::vector<string> SongsQueue;
 
-bool scrobby_exit = 0;
 bool notify_about_now_playing = 0;
 
 namespace {
+	void do_at_exit();
+	
 	void signal_handler(int);
 	bool send_handshake();
 	
@@ -121,11 +122,13 @@ int main(int argc, char **argv)
 	
 	pthread_create(&handshake_th, NULL, handshake_handler, NULL);
 	pthread_detach(handshake_th);
-
+	
+	atexit(do_at_exit);
+	
 	int x = 0;
 	int delay = 1;
 	
-	while (!scrobby_exit && !usleep(500000))
+	while (!usleep(500000))
 	{
 		if (Mpd->Connected())
 		{
@@ -151,19 +154,22 @@ int main(int argc, char **argv)
 		}
 	}
 	
-	s.Submit();
-	Log(llInfo, "Shutting down...");
-	if (remove(config.file_pid.c_str()) != 0)
-		Log(llInfo, "Couldn't remove pid file!");
-	delete Mpd;
-	
 	return 0;
 }
 
 namespace {
+	
+	void do_at_exit()
+	{
+		s.Submit();
+		Log(llInfo, "Shutting down...");
+		if (remove(config.file_pid.c_str()) != 0)
+			Log(llInfo, "Couldn't remove pid file!");
+	}
+	
 	void signal_handler(int)
 	{
-		scrobby_exit = 1;
+		exit(0);
 	}
 	
 	bool send_handshake()
@@ -217,7 +223,7 @@ namespace {
 	void *handshake_handler(void *)
 	{
 		int x = 0;
-		while (!scrobby_exit)
+		while (1)
 		{
 			if (handshake.status != "OK")
 			{
