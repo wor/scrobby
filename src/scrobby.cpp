@@ -54,7 +54,6 @@ namespace {
 	void signal_handler(int);
 	bool send_handshake();
 	
-	void *mpdconnection_handler(void *data);
 	void *handshake_handler(void *);
 }
 
@@ -120,15 +119,36 @@ int main(int argc, char **argv)
 	signal(SIGTERM, signal_handler);
 	signal(SIGPIPE, SIG_IGN);
 	
-	pthread_create(&mpdconnection_th, NULL, mpdconnection_handler, Mpd);
 	pthread_create(&handshake_th, NULL, handshake_handler, NULL);
-	pthread_detach(mpdconnection_th);
 	pthread_detach(handshake_th);
 
+	int x = 0;
+	int delay = 1;
+	
 	while (!scrobby_exit && !usleep(500000))
 	{
 		if (Mpd->Connected())
+		{
 			Mpd->UpdateStatus();
+		}
+		else if (!--delay)
+		{
+			s.Submit();
+			Log(llVerbose, "Connecting to MPD...");
+			if (Mpd->Connect())
+			{
+				Log(llInfo, "Connected to MPD at %s !", config.mpd_host.c_str());
+				x = 0;
+				delay = 1;
+			}
+			else
+			{
+				x++;
+				delay = 10*x;
+				Log(llInfo, "Cannot connect to MPD, retrieving in %d seconds...", delay);
+				delay *= 2; // we are polling once in 0.5 second, not 1
+			}
+		}
 	}
 	
 	s.Submit();
@@ -192,34 +212,6 @@ namespace {
 		ignore_newlines(result);
 		handshake.submission_url = result;
 		return true;
-	}
-	
-	void *mpdconnection_handler(void *data)
-	{
-		MPD::Connection *Mpd = static_cast<MPD::Connection *>(data);
-		int x = 0;
-		while (!scrobby_exit)
-		{
-			while (!Mpd->Connected())
-			{
-				s.Submit();
-				Log(llVerbose, "Connecting to MPD...");
-				Mpd->Disconnect();
-				if (Mpd->Connect())
-				{
-					Log(llInfo, "Connected to MPD at %s !", config.mpd_host.c_str());
-					x = 0;
-				}
-				else
-				{
-					x++;
-					Log(llInfo, "Cannot connect to MPD, retrieving in %d seconds...", 10*x);
-					sleep(10*x);
-				}
-			}
-			sleep(1);
-		}
-		pthread_exit(NULL);
 	}
 	
 	void *handshake_handler(void *)
