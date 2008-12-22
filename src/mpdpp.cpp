@@ -112,11 +112,17 @@ void MPD::Connection::SetErrorHandler(ErrorHandler handler, void *data)
 
 void MPD::Connection::UpdateStatus()
 {
+	if (!itsConnection)
+		return;
+	
 	CheckForErrors();
 	
 	if (itsOldStatus)
 		mpd_freeStatus(itsOldStatus);
+	
 	itsOldStatus = itsCurrentStatus;
+	itsCurrentStatus = 0;
+	
 	mpd_sendStatusCommand(itsConnection);
 	itsCurrentStatus = mpd_getStatus(itsConnection);
 	
@@ -174,12 +180,13 @@ int MPD::Connection::CheckForErrors()
 		}
 		else
 		{
-			isConnected = 0; // the rest of errors are fatal to connection
 			if (itsErrorHandler)
 				itsErrorHandler(this, itsConnection->error, itsErrorMessage, itsErrorHandlerUserdata);
 			itsErrorCode = itsConnection->error;
+			Disconnect(); // the rest of errors are fatal to connection
 		}
-		mpd_clearError(itsConnection);
+		if (itsConnection)
+			mpd_clearError(itsConnection);
 	}
 	return itsErrorCode;
 }
