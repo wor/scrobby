@@ -39,7 +39,6 @@ ScrobbyConfig config;
 Handshake handshake;
 MPD::Song s;
 
-pthread_t mpdconnection_th;
 pthread_t handshake_th;
 
 pthread_mutex_t curl_lock = PTHREAD_MUTEX_INITIALIZER;
