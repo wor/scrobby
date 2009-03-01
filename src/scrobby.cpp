@@ -187,12 +187,11 @@ namespace {
 		
 		pthread_mutex_lock(&curl_lock);
 		CURL *hs = curl_easy_init();
-		curl_easy_setopt(hs, CURLOPT_DNS_CACHE_TIMEOUT, 0);
-		curl_easy_setopt(hs, CURLOPT_NOSIGNAL, 1);
 		curl_easy_setopt(hs, CURLOPT_URL, handshake_url.c_str());
 		curl_easy_setopt(hs, CURLOPT_WRITEFUNCTION, write_data);
 		curl_easy_setopt(hs, CURLOPT_WRITEDATA, &result);
 		curl_easy_setopt(hs, CURLOPT_CONNECTTIMEOUT, curl_timeout);
+		curl_easy_setopt(hs, CURLOPT_NOSIGNAL, 1);
 		code = curl_easy_perform(hs);
 		curl_easy_cleanup(hs);
 		pthread_mutex_unlock(&curl_lock);
@@ -254,14 +253,13 @@ namespace {
 						Log(llVerbose, "URL: %s", handshake.submission_url.c_str());
 						Log(llVerbose, "Post data: %s", postdata.c_str());
 						
-						curl_easy_setopt(submission, CURLOPT_DNS_CACHE_TIMEOUT, 0);
-						curl_easy_setopt(submission, CURLOPT_NOSIGNAL, 1);
 						curl_easy_setopt(submission, CURLOPT_URL, handshake.submission_url.c_str());
 						curl_easy_setopt(submission, CURLOPT_POST, 1);
 						curl_easy_setopt(submission, CURLOPT_POSTFIELDS, postdata.c_str());
 						curl_easy_setopt(submission, CURLOPT_WRITEFUNCTION, write_data);
 						curl_easy_setopt(submission, CURLOPT_WRITEDATA, &result);
 						curl_easy_setopt(submission, CURLOPT_CONNECTTIMEOUT, curl_timeout);
+						curl_easy_setopt(submission, CURLOPT_NOSIGNAL, 1);
 						code = curl_easy_perform(submission);
 						curl_easy_cleanup(submission);
 						pthread_mutex_unlock(&curl_lock);

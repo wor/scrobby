@@ -106,13 +106,10 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			string result, postdata;
 			CURLcode code;
 			
-			pthread_mutex_lock(&curl_lock);
-			CURL *np_notification = curl_easy_init();
-			
-			char *c_artist = curl_easy_escape(np_notification, s.Data()->artist, 0);
-			char *c_title = curl_easy_escape(np_notification, s.Data()->title, 0);
-			char *c_album = s.Data()->album ? curl_easy_escape(np_notification, s.Data()->album, 0) : NULL;
-			char *c_track = s.Data()->track ? curl_easy_escape(np_notification, s.Data()->track, 0) : NULL;
+			char *c_artist = curl_easy_escape(0, s.Data()->artist, 0);
+			char *c_title = curl_easy_escape(0, s.Data()->title, 0);
+			char *c_album = s.Data()->album ? curl_easy_escape(0, s.Data()->album, 0) : NULL;
+			char *c_track = s.Data()->track ? curl_easy_escape(0, s.Data()->track, 0) : NULL;
 			
 			postdata = "s=";
 			postdata += handshake.session_id;
@@ -138,14 +135,15 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			Log(llVerbose, "URL: %s", handshake.nowplaying_url.c_str());
 			Log(llVerbose, "Post data: %s", postdata.c_str());
 			
-			curl_easy_setopt(np_notification, CURLOPT_DNS_CACHE_TIMEOUT, 0);
-			curl_easy_setopt(np_notification, CURLOPT_NOSIGNAL, 1);
+			pthread_mutex_lock(&curl_lock);
+			CURL *np_notification = curl_easy_init();
 			curl_easy_setopt(np_notification, CURLOPT_URL, handshake.nowplaying_url.c_str());
 			curl_easy_setopt(np_notification, CURLOPT_POST, 1);
 			curl_easy_setopt(np_notification, CURLOPT_POSTFIELDS, postdata.c_str());
 			curl_easy_setopt(np_notification, CURLOPT_WRITEFUNCTION, write_data);
 			curl_easy_setopt(np_notification, CURLOPT_WRITEDATA, &result);
 			curl_easy_setopt(np_notification, CURLOPT_CONNECTTIMEOUT, curl_timeout);
+			curl_easy_setopt(np_notification, CURLOPT_NOSIGNAL, 1);
 			code = curl_easy_perform(np_notification);
 			curl_easy_cleanup(np_notification);
 			pthread_mutex_unlock(&curl_lock);
