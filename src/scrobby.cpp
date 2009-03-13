@@ -130,8 +130,7 @@ int main(int argc, char **argv)
 			if (myHandshake.Status == "OK")
 			{
 				Log(llInfo, "Connected to Audioscrobbler!");
-				if (MPD::Song::SendQueue())
-					handshake_delay = 0;
+				handshake_delay = 0;
 				NowPlayingNotify = !s.isStream();
 			}
 			else

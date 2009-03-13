@@ -21,6 +21,8 @@
 #ifndef _SONG_H
 #define _SONG_H
 
+#include <deque>
+
 #include "libmpdclient.h"
 
 namespace MPD
@@ -40,16 +42,17 @@ namespace MPD
 			int Playback;
 			
 			static void GetCached();
-			static bool SendQueue();
 			
 		private:
 			void Cache();
 			void Clear();
 			
+			static void SendQueue();
+			
 			bool canBeSubmitted();
 			bool itsIsStream;
 			
-			static std::vector<std::string> Queue;
+			static std::deque<std::string> Queue;
 	};
 }
 

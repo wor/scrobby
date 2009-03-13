@@ -33,7 +33,7 @@ using std::string;
 
 extern Handshake myHandshake;
 
-std::vector<std::string> MPD::Song::Queue;
+std::deque<std::string> MPD::Song::Queue;
 
 MPD::Song::Song() : Data(0),
 		    StartTime(0),
@@ -78,7 +78,13 @@ void MPD::Song::Submit()
 	
 	if (canBeSubmitted())
 	{
-		SendQueue();
+		if (!Queue.empty())
+		{
+			Cache();
+			Clear();
+			SendQueue();
+			return;
+		}
 		
 		if (myHandshake.Status != "OK" || myHandshake.SubmissionURL.empty())
 		{
@@ -151,6 +157,8 @@ void MPD::Song::Submit()
 			{
 				Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
 			}
+			myHandshake.Clear(); // handshake probably failed if we are here, so reset it
+			Log(llVerbose, "Handshake reset");
 			Cache();
 		}
 	}
@@ -159,9 +167,6 @@ void MPD::Song::Submit()
 
 void MPD::Song::Cache()
 {
-	myHandshake.Clear(); // handshake probably failed if we are here, so reset it
-	Log(llVerbose, "Handshake reset");
-	
 	std::ostringstream cache;
 	string cache_str;
 	
@@ -245,10 +250,10 @@ void MPD::Song::GetCached()
 	}
 }
 
-bool MPD::Song::SendQueue()
+void MPD::Song::SendQueue()
 {
 	if (Song::Queue.empty())
-		return true;
+		return;
 	
 	Log(llInfo, "Queue is not empty, submitting songs...");
 	
@@ -258,7 +263,7 @@ bool MPD::Song::SendQueue()
 	postdata = "s=";
 	postdata += myHandshake.SessionID;
 	
-	for (std::vector<string>::const_iterator it = Song::Queue.begin(); it != Song::Queue.end(); it++)
+	for (std::deque<string>::const_iterator it = Song::Queue.begin(); it != Song::Queue.end(); it++)
 		postdata += *it;
 	
 	Log(llVerbose, "URL: %s", myHandshake.SubmissionURL.c_str());
@@ -281,7 +286,6 @@ bool MPD::Song::SendQueue()
 		Log(llInfo, "Number of submitted songs: %d", Song::Queue.size());
 		Song::Queue.clear();
 		ClearCache();
-		return true;
 	}
 	else
 	{
@@ -293,7 +297,6 @@ bool MPD::Song::SendQueue()
 		{
 			Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
 		}
-		return false;
 	}
 }
 
