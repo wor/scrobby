@@ -84,21 +84,6 @@ void ClearCache()
 	f.close();
 }
 
-void GetCachedSongs(std::vector<std::string> &v)
-{
-	std::ifstream f(Config.file_cache.c_str());
-	if (f.is_open())
-	{
-		std::string line;
-		while (!f.eof())
-		{
-			getline(f, line);
-			if (!line.empty())
-				v.push_back(line);
-		}
-	}
-}
-
 void WriteCache(const std::string &s)
 {
 	std::ofstream f(Config.file_cache.c_str(), std::ios::app);

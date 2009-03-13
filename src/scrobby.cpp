@@ -33,7 +33,6 @@
 
 using std::string;
 
-std::vector<string> SongsQueue;
 Handshake myHandshake;
 MPD::Song s;
 
@@ -91,7 +90,7 @@ int main(int argc, char **argv)
 			std::cerr << "couldn't daemonize!\n";
 	}
 	
-	GetCachedSongs(SongsQueue);
+	MPD::Song::GetCached();
 	
 	MPD::Connection *Mpd = new MPD::Connection;
 	
@@ -121,7 +120,7 @@ int main(int argc, char **argv)
 	while (!usleep(500000))
 	{
 		time(&now);
-		if (now > handshake_delay && myHandshake.Status != "OK")
+		if (now > handshake_ts && myHandshake.Status != "OK")
 		{
 			myHandshake.Clear();
 			if (handshake_sent_properly() && !myHandshake.Status.empty())
@@ -131,53 +130,8 @@ int main(int argc, char **argv)
 			if (myHandshake.Status == "OK")
 			{
 				Log(llInfo, "Connected to Audioscrobbler!");
-				if (!SongsQueue.empty())
-				{
-					Log(llInfo, "Queue's not empty, submitting songs...");
-					
-					string result, postdata;
-					CURLcode code;
-					
-					postdata = "s=";
-					postdata += myHandshake.SessionID;
-					
-					for (std::vector<string>::const_iterator it = SongsQueue.begin(); it != SongsQueue.end(); it++)
-						postdata += *it;
-					
-					Log(llVerbose, "URL: %s", myHandshake.SubmissionURL.c_str());
-					Log(llVerbose, "Post data: %s", postdata.c_str());
-					
-					CURL *submission = curl_easy_init();
-					curl_easy_setopt(submission, CURLOPT_URL, myHandshake.SubmissionURL.c_str());
-					curl_easy_setopt(submission, CURLOPT_POST, 1);
-					curl_easy_setopt(submission, CURLOPT_POSTFIELDS, postdata.c_str());
-					curl_easy_setopt(submission, CURLOPT_WRITEFUNCTION, write_data);
-					curl_easy_setopt(submission, CURLOPT_WRITEDATA, &result);
-					curl_easy_setopt(submission, CURLOPT_CONNECTTIMEOUT, curl_timeout);
-					code = curl_easy_perform(submission);
-					curl_easy_cleanup(submission);
-					
-					IgnoreNewlines(result);
-					
-					if (result == "OK")
-					{
-						Log(llInfo, "Number of submitted songs: %d", SongsQueue.size());
-						SongsQueue.clear();
-						ClearCache();
-						handshake_delay = 0;
-					}
-					else
-					{
-						if (result.empty())
-						{
-							Log(llInfo, "Error while submitting songs: %s", curl_easy_strerror(code));
-						}
-						else
-						{
-							Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
-						}
-					}
-				}
+				if (MPD::Song::SendQueue())
+					handshake_delay = 0;
 				NowPlayingNotify = !s.isStream();
 			}
 			else

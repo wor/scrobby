@@ -117,6 +117,9 @@ void MPD::Connection::UpdateStatus()
 	
 	CheckForErrors();
 	
+	if (!itsConnection)
+		return;
+	
 	if (itsOldStatus)
 		mpd_freeStatus(itsOldStatus);
 	

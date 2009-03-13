@@ -35,9 +35,12 @@ namespace MPD
 			void Submit();
 			bool isStream() const;
 			
-			int Playback;
 			mpd_Song *Data;
 			time_t StartTime;
+			int Playback;
+			
+			static void GetCached();
+			static bool SendQueue();
 			
 		private:
 			void Cache();
@@ -45,6 +48,8 @@ namespace MPD
 			
 			bool canBeSubmitted();
 			bool itsIsStream;
+			
+			static std::vector<std::string> Queue;
 	};
 }
 
