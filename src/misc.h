@@ -23,7 +23,6 @@
 
 #include <sstream>
 #include <string>
-#include <vector>
 
 #include "configuration.h"
 
@@ -34,7 +33,6 @@ void ChangeToUser();
 bool Daemonize();
 
 void ClearCache();
-void GetCachedSongs(std::vector<std::string> &);
 
 void WriteCache(const std::string &);
 void Log(LogLevel ll, const char *, ...);

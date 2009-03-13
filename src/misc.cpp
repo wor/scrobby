@@ -23,7 +23,6 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <sstream>
 #include <openssl/evp.h>
 #include <pwd.h>
 
