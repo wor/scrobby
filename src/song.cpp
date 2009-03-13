@@ -215,7 +215,7 @@ bool MPD::Song::canBeSubmitted()
 	{
 		if (!StartTime)
 		{
-			Log(llInfo, "Song's start time isn't known, not submitting.");
+			Log(llInfo, "Song's start time wasn't known, not submitting.");
 		}
 		else if (Data->time < 30)
 		{
