@@ -34,9 +34,6 @@ MPD::State current_state = MPD::psUnknown;
 extern Handshake handshake;
 extern MPD::Song s;
 
-extern pthread_mutex_t curl_lock;
-extern pthread_mutex_t handshake_lock;
-
 extern bool notify_about_now_playing;
 
 void ScrobbyErrorCallback(MPD::Connection *, int, string errormessage, void *)
@@ -80,7 +77,6 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 	}
 	if (notify_about_now_playing)
 	{
-		pthread_mutex_lock(&handshake_lock);
 		if (s.Data() && (!s.Data()->artist || !s.Data()->title))
 		{
 			Log(llInfo, "Playing song with missing tags detected.");
@@ -135,7 +131,6 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			Log(llVerbose, "URL: %s", handshake.nowplaying_url.c_str());
 			Log(llVerbose, "Post data: %s", postdata.c_str());
 			
-			pthread_mutex_lock(&curl_lock);
 			CURL *np_notification = curl_easy_init();
 			curl_easy_setopt(np_notification, CURLOPT_URL, handshake.nowplaying_url.c_str());
 			curl_easy_setopt(np_notification, CURLOPT_POST, 1);
@@ -146,7 +141,6 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			curl_easy_setopt(np_notification, CURLOPT_NOSIGNAL, 1);
 			code = curl_easy_perform(np_notification);
 			curl_easy_cleanup(np_notification);
-			pthread_mutex_unlock(&curl_lock);
 			
 			ignore_newlines(result);
 			
@@ -174,7 +168,6 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			handshake.Clear(); // handshake probably failed if we are here, so reset it
 			Log(llVerbose, "Handshake status reset");
 		}
-		pthread_mutex_unlock(&handshake_lock);
 		notify_about_now_playing = 0;
 	}
 }

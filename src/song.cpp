@@ -31,9 +31,6 @@ using std::string;
 
 extern Handshake handshake;
 
-extern pthread_mutex_t curl_lock;
-extern pthread_mutex_t handshake_lock;
-
 extern std::vector<string> SongsQueue;
 
 MPD::Song::Song() : itsSong(0),
@@ -84,7 +81,6 @@ void MPD::Song::Submit()
 		itsSong->time = itsNoticedPlayback;
 	}
 	
-	pthread_mutex_lock(&handshake_lock);
 	if (canBeSubmitted())
 	{
 		if (handshake.status != "OK" || handshake.submission_url.empty())
@@ -98,7 +94,6 @@ void MPD::Song::Submit()
 		string result, postdata;
 		CURLcode code;
 		
-		pthread_mutex_lock(&curl_lock);
 		CURL *submission = curl_easy_init();
 		
 		char *c_artist = curl_easy_escape(submission, itsSong->artist, 0);
@@ -143,7 +138,6 @@ void MPD::Song::Submit()
 		curl_easy_setopt(submission, CURLOPT_NOSIGNAL, 1);
 		code = curl_easy_perform(submission);
 		curl_easy_cleanup(submission);
-		pthread_mutex_unlock(&curl_lock);
 		
 		ignore_newlines(result);
 		
@@ -226,7 +220,6 @@ void MPD::Song::Submit()
 		SongsQueue.push_back(cache);
 		Log(llInfo, "Song cached.");
 	}
-	pthread_mutex_unlock(&handshake_lock);
 	Clear();
 }
 

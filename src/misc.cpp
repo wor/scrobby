@@ -32,8 +32,6 @@
 
 extern ScrobbyConfig config;
 
-pthread_mutex_t log_file = PTHREAD_MUTEX_INITIALIZER;
-
 size_t write_data(char *buffer, size_t size, size_t nmemb, std::string data)
 {
 	size_t result = size * nmemb;
@@ -117,7 +115,6 @@ void Log(LogLevel ll, const char *format, ...)
 {
 	if (config.log_level < ll)
 		return;
-	pthread_mutex_lock(&log_file);
 	FILE *f = fopen(config.file_log.c_str(), "a");
 	if (!f)
 	{
@@ -131,7 +128,6 @@ void Log(LogLevel ll, const char *format, ...)
 	va_end(list);
 	fprintf(f, "\n");
 	fclose(f);
-	pthread_mutex_unlock(&log_file);
 }
 
 void ignore_newlines(std::string &s)

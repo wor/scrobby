@@ -21,7 +21,6 @@
 #include <csignal>
 #include <cstdlib>
 #include <curl/curl.h>
-#include <pthread.h>
 #include <iostream>
 #include <vector>
 
@@ -39,11 +38,6 @@ ScrobbyConfig config;
 Handshake handshake;
 MPD::Song s;
 
-pthread_t handshake_th;
-
-pthread_mutex_t curl_lock = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t handshake_lock = PTHREAD_MUTEX_INITIALIZER;
-
 std::vector<string> SongsQueue;
 
 bool notify_about_now_playing = 0;
@@ -52,7 +46,7 @@ namespace {
 	void do_at_exit();
 	
 	void signal_handler(int);
-	bool send_handshake();
+	bool handshake_sent_properly();
 	
 	void *handshake_handler(void *);
 }
@@ -119,40 +113,107 @@ int main(int argc, char **argv)
 	signal(SIGTERM, signal_handler);
 	signal(SIGPIPE, SIG_IGN);
 	
-	pthread_create(&handshake_th, NULL, handshake_handler, NULL);
-	pthread_detach(handshake_th);
-	
 	atexit(do_at_exit);
 	
-	int x = 0;
-	int delay = 1;
+	int handshake_delay = 0;
+	int mpd_delay = 0;
+	
+	time_t now = 0;
+	time_t handshake_ts = 0;
+	time_t mpd_ts = 0;
 	
 	while (!usleep(500000))
 	{
+		time(&now);
+		if (now > handshake_delay && handshake.status != "OK")
+		{
+			handshake.Clear();
+			if (handshake_sent_properly() && !handshake.status.empty())
+			{
+				Log(llInfo, "Handshake returned %s", handshake.status.c_str());
+			}
+			if (handshake.status == "OK")
+			{
+				Log(llInfo, "Connected to Audioscrobbler!");
+				if (!SongsQueue.empty())
+				{
+					Log(llInfo, "Queue's not empty, submitting songs...");
+					
+					string result, postdata;
+					CURLcode code;
+					
+					CURL *submission = curl_easy_init();
+					
+					postdata = "s=";
+					postdata += handshake.session_id;
+					
+					for (std::vector<string>::const_iterator it = SongsQueue.begin(); it != SongsQueue.end(); it++)
+						postdata += *it;
+					
+					Log(llVerbose, "URL: %s", handshake.submission_url.c_str());
+					Log(llVerbose, "Post data: %s", postdata.c_str());
+					
+					curl_easy_setopt(submission, CURLOPT_URL, handshake.submission_url.c_str());
+					curl_easy_setopt(submission, CURLOPT_POST, 1);
+					curl_easy_setopt(submission, CURLOPT_POSTFIELDS, postdata.c_str());
+					curl_easy_setopt(submission, CURLOPT_WRITEFUNCTION, write_data);
+					curl_easy_setopt(submission, CURLOPT_WRITEDATA, &result);
+					curl_easy_setopt(submission, CURLOPT_CONNECTTIMEOUT, curl_timeout);
+					curl_easy_setopt(submission, CURLOPT_NOSIGNAL, 1);
+					code = curl_easy_perform(submission);
+					curl_easy_cleanup(submission);
+					
+					ignore_newlines(result);
+					
+					if (result == "OK")
+					{
+						Log(llInfo, "Number of submitted songs: %d", SongsQueue.size());
+						SongsQueue.clear();
+						ClearCache();
+						handshake_delay = 0;
+					}
+					else
+					{
+						if (result.empty())
+						{
+							Log(llInfo, "Error while submitting songs: %s", curl_easy_strerror(code));
+						}
+						else
+						{
+							Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
+						}
+					}
+				}
+				notify_about_now_playing = !s.isStream();
+			}
+			else
+			{
+				handshake_delay += 10;
+				Log(llInfo, "Connection to Audioscrobbler refused, retrieving in %d seconds...", handshake_delay);
+				handshake_ts = time(0)+handshake_delay;
+			}
+		}
 		if (Mpd->Connected())
 		{
 			Mpd->UpdateStatus();
 		}
-		else if (!--delay)
+		else if (now > mpd_ts)
 		{
 			s.Submit();
 			Log(llVerbose, "Connecting to MPD...");
 			if (Mpd->Connect())
 			{
 				Log(llInfo, "Connected to MPD at %s !", config.mpd_host.c_str());
-				x = 0;
-				delay = 1;
+				mpd_delay = 0;
 			}
 			else
 			{
-				x++;
-				delay = 10*x;
-				Log(llInfo, "Cannot connect to MPD, retrieving in %d seconds...", delay);
-				delay *= 2; // we are polling once in 0.5 second, not 1
+				mpd_delay += 10;
+				Log(llInfo, "Cannot connect to MPD, retrieving in %d seconds...", mpd_delay);
+				mpd_ts = time(0)+mpd_delay;
 			}
 		}
 	}
-	
 	return 0;
 }
 
@@ -171,7 +232,7 @@ namespace {
 		exit(0);
 	}
 	
-	bool send_handshake()
+	bool handshake_sent_properly()
 	{
 		CURLcode code;
 		string handshake_url;
@@ -185,7 +246,6 @@ namespace {
 		handshake_url += "&a=";
 		handshake_url += md5sum((config.lastfm_md5_password.empty() ? md5sum(config.lastfm_password) : config.lastfm_md5_password) + timestamp);
 		
-		pthread_mutex_lock(&curl_lock);
 		CURL *hs = curl_easy_init();
 		curl_easy_setopt(hs, CURLOPT_URL, handshake_url.c_str());
 		curl_easy_setopt(hs, CURLOPT_WRITEFUNCTION, write_data);
@@ -194,7 +254,6 @@ namespace {
 		curl_easy_setopt(hs, CURLOPT_NOSIGNAL, 1);
 		code = curl_easy_perform(hs);
 		curl_easy_cleanup(hs);
-		pthread_mutex_unlock(&curl_lock);
 		
 		if (code != CURLE_OK)
 		{
@@ -216,87 +275,6 @@ namespace {
 		ignore_newlines(result);
 		handshake.submission_url = result;
 		return true;
-	}
-	
-	void *handshake_handler(void *)
-	{
-		int x = 0;
-		while (1)
-		{
-			if (handshake.status != "OK")
-			{
-				pthread_mutex_lock(&handshake_lock);
-				handshake.Clear();
-				if (send_handshake() && !handshake.status.empty())
-				{
-					Log(llInfo, "Handshake returned %s", handshake.status.c_str());
-				}
-				if (handshake.status == "OK")
-				{
-					Log(llInfo, "Connected to Audioscrobbler!");
-					if (!SongsQueue.empty())
-					{
-						Log(llInfo, "Queue's not empty, submitting songs...");
-						
-						string result, postdata;
-						CURLcode code;
-						
-						pthread_mutex_lock(&curl_lock);
-						CURL *submission = curl_easy_init();
-						
-						postdata = "s=";
-						postdata += handshake.session_id;
-						
-						for (std::vector<string>::const_iterator it = SongsQueue.begin(); it != SongsQueue.end(); it++)
-							postdata += *it;
-						
-						Log(llVerbose, "URL: %s", handshake.submission_url.c_str());
-						Log(llVerbose, "Post data: %s", postdata.c_str());
-						
-						curl_easy_setopt(submission, CURLOPT_URL, handshake.submission_url.c_str());
-						curl_easy_setopt(submission, CURLOPT_POST, 1);
-						curl_easy_setopt(submission, CURLOPT_POSTFIELDS, postdata.c_str());
-						curl_easy_setopt(submission, CURLOPT_WRITEFUNCTION, write_data);
-						curl_easy_setopt(submission, CURLOPT_WRITEDATA, &result);
-						curl_easy_setopt(submission, CURLOPT_CONNECTTIMEOUT, curl_timeout);
-						curl_easy_setopt(submission, CURLOPT_NOSIGNAL, 1);
-						code = curl_easy_perform(submission);
-						curl_easy_cleanup(submission);
-						pthread_mutex_unlock(&curl_lock);
-						
-						ignore_newlines(result);
-						
-						if (result == "OK")
-						{
-							Log(llInfo, "Number of submitted songs: %d", SongsQueue.size());
-							SongsQueue.clear();
-							ClearCache();
-							x = 0;
-						}
-						else
-						{
-							if (result.empty())
-							{
-								Log(llInfo, "Error while submitting songs: %s", curl_easy_strerror(code));
-							}
-							else
-							{
-								Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
-							}
-						}
-					}
-					notify_about_now_playing = !s.isStream();
-				}
-				else
-				{
-					x++;
-					Log(llInfo, "Connection to Audioscrobbler refused, retrieving in %d seconds...", 10*x);
-				}
-				pthread_mutex_unlock(&handshake_lock);
-			}
-			sleep(!x ? 1 : 10*x);
-		}
-		pthread_exit(NULL);
 	}
 }
 
