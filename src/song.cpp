@@ -29,8 +29,7 @@
 
 using std::string;
 
-extern Handshake handshake;
-
+extern Handshake myHandshake;
 extern std::vector<string> SongsQueue;
 
 MPD::Song::Song() : Data(0),
@@ -72,16 +71,16 @@ void MPD::Song::Submit()
 		return;
 	
 	if (itsIsStream)
-	{
 		Data->time = Playback;
-	}
 	
 	if (canBeSubmitted())
 	{
-		if (handshake.status != "OK" || handshake.submission_url.empty())
+		if (myHandshake.Status != "OK" || myHandshake.SubmissionURL.empty())
 		{
-			Log(llInfo, "Problems with handshake status, queue song at position %d...", SongsQueue.size());
-			goto SUBMISSION_FAILED;
+			Log(llInfo, "Problem with handshake, queue song at position %d...", SongsQueue.size());
+			Cache();
+			Clear();
+			return;
 		}
 		
 		Log(llInfo, "Submitting song...");
@@ -90,14 +89,13 @@ void MPD::Song::Submit()
 		string result, postdata_str;
 		CURLcode code;
 		
-		CURL *submission = curl_easy_init();
+		char *c_artist = curl_easy_escape(0, Data->artist, 0);
+		char *c_title = curl_easy_escape(0, Data->title, 0);
+		char *c_album = Data->album ? curl_easy_escape(0, Data->album, 0) : NULL;
+		char *c_track = Data->track ? curl_easy_escape(0, Data->track, 0) : NULL;
 		
-		char *c_artist = curl_easy_escape(submission, Data->artist, 0);
-		char *c_title = curl_easy_escape(submission, Data->title, 0);
-		char *c_album = Data->album ? curl_easy_escape(submission, Data->album, 0) : NULL;
-		char *c_track = Data->track ? curl_easy_escape(submission, Data->track, 0) : NULL;
-		
-		postdata << "s=" << handshake.session_id
+		postdata
+		<< "s=" << myHandshake.SessionID
 		<< "&a[0]=" << c_artist
 		<< "&t[0]=" << c_title
 		<< "&i[0]=" << StartTime
@@ -119,10 +117,11 @@ void MPD::Song::Submit()
 		
 		postdata_str = postdata.str();
 		
-		Log(llVerbose, "URL: %s", handshake.submission_url.c_str());
+		Log(llVerbose, "URL: %s", myHandshake.SubmissionURL.c_str());
 		Log(llVerbose, "Post data: %s", postdata_str.c_str());
 		
-		curl_easy_setopt(submission, CURLOPT_URL, handshake.submission_url.c_str());
+		CURL *submission = curl_easy_init();
+		curl_easy_setopt(submission, CURLOPT_URL, myHandshake.SubmissionURL.c_str());
 		curl_easy_setopt(submission, CURLOPT_POST, 1);
 		curl_easy_setopt(submission, CURLOPT_POSTFIELDS, postdata_str.c_str());
 		curl_easy_setopt(submission, CURLOPT_WRITEFUNCTION, write_data);
@@ -131,7 +130,7 @@ void MPD::Song::Submit()
 		code = curl_easy_perform(submission);
 		curl_easy_cleanup(submission);
 		
-		ignore_newlines(result);
+		IgnoreNewlines(result);
 		
 		if (result == "OK")
 		{
@@ -147,53 +146,52 @@ void MPD::Song::Submit()
 			{
 				Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
 			}
-			goto SUBMISSION_FAILED;
+			Cache();
 		}
 	}
-	if (0)
-	{
-		SUBMISSION_FAILED: // so we cache not submitted song
-		
-		handshake.Clear(); // handshake probably failed if we are here, so reset it
-		Log(llVerbose, "Handshake status reset");
-		
-		std::ostringstream cache;
-		string cache_str;
-		
-		char *c_artist = curl_easy_escape(0, Data->artist, 0);
-		char *c_title = curl_easy_escape(0, Data->title, 0);
-		char *c_album = Data->album ? curl_easy_escape(0, Data->album, 0) : NULL;
-		char *c_track = Data->track ? curl_easy_escape(0, Data->track, 0) : NULL;
-		
-		cache
-		<< "&a[" << SongsQueue.size() << "]=" << c_artist
-		<< "&t[" << SongsQueue.size() << "]=" << c_title
-		<< "&i[" << SongsQueue.size() << "]=" << StartTime
-		<< "&o[" << SongsQueue.size() << "]=P"
-		<< "&r[" << SongsQueue.size() << "]="
-		<< "&l[" << SongsQueue.size() << "]=" << Data->time
-		<< "&b[" << SongsQueue.size() << "]=";
-		if (c_album)
-			cache << c_album;
-		cache << "&n[" << SongsQueue.size() << "]=";
-		if (c_track)
-			cache << c_track;
-		cache << "&m[" << SongsQueue.size() << "]=";
-		
-		cache_str = cache.str();
-		
-		Log(llVerbose, "Metadata: %s", cache_str.c_str());
-		
-		curl_free(c_artist);
-		curl_free(c_title);
-		curl_free(c_album);
-		curl_free(c_track);
-		
-		Cache(cache_str);
-		SongsQueue.push_back(cache_str);
-		Log(llInfo, "Song cached.");
-	}
 	Clear();
+}
+
+void MPD::Song::Cache()
+{
+	myHandshake.Clear(); // handshake probably failed if we are here, so reset it
+	Log(llVerbose, "Handshake reset");
+	
+	std::ostringstream cache;
+	string cache_str;
+	
+	char *c_artist = curl_easy_escape(0, Data->artist, 0);
+	char *c_title = curl_easy_escape(0, Data->title, 0);
+	char *c_album = Data->album ? curl_easy_escape(0, Data->album, 0) : NULL;
+	char *c_track = Data->track ? curl_easy_escape(0, Data->track, 0) : NULL;
+	
+	cache
+	<< "&a[" << SongsQueue.size() << "]=" << c_artist
+	<< "&t[" << SongsQueue.size() << "]=" << c_title
+	<< "&i[" << SongsQueue.size() << "]=" << StartTime
+	<< "&o[" << SongsQueue.size() << "]=P"
+	<< "&r[" << SongsQueue.size() << "]="
+	<< "&l[" << SongsQueue.size() << "]=" << Data->time
+	<< "&b[" << SongsQueue.size() << "]=";
+	if (c_album)
+		cache << c_album;
+	cache << "&n[" << SongsQueue.size() << "]=";
+	if (c_track)
+		cache << c_track;
+	cache << "&m[" << SongsQueue.size() << "]=";
+	
+	cache_str = cache.str();
+	
+	Log(llVerbose, "Metadata: %s", cache_str.c_str());
+	
+	curl_free(c_artist);
+	curl_free(c_title);
+	curl_free(c_album);
+	curl_free(c_track);
+	
+	WriteCache(cache_str);
+	SongsQueue.push_back(cache_str);
+	Log(llInfo, "Song cached.");
 }
 
 bool MPD::Song::isStream() const

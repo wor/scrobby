@@ -30,8 +30,6 @@
 #include "configuration.h"
 #include "misc.h"
 
-extern ScrobbyConfig config;
-
 size_t write_data(char *buffer, size_t size, size_t nmemb, std::string data)
 {
 	size_t result = size * nmemb;
@@ -41,26 +39,26 @@ size_t write_data(char *buffer, size_t size, size_t nmemb, std::string data)
 
 void ChangeToUser()
 {
-	if (config.dedicated_user.empty() || getuid() != 0)
+	if (Config.dedicated_user.empty() || getuid() != 0)
 		return;
 	
 	passwd *userinfo;
-	if (!(userinfo = getpwnam(config.dedicated_user.c_str())))
+	if (!(userinfo = getpwnam(Config.dedicated_user.c_str())))
 	{
-		std::cerr << "user " << config.dedicated_user << " not found!\n";
+		std::cerr << "user " << Config.dedicated_user << " not found!\n";
 		exit(1);
 	}
 	if (setgid(userinfo->pw_gid) == -1)
 	{
-		std::cerr << "cannot set gid for user " << config.dedicated_user << ": " << strerror(errno) << std::endl;
+		std::cerr << "cannot set gid for user " << Config.dedicated_user << ": " << strerror(errno) << std::endl;
 		exit(1);
 	}
 	if (setuid(userinfo->pw_uid) == -1)
 	{
-		std::cerr << "cannot change to uid of user " << config.dedicated_user << ": " << strerror(errno) << std::endl;
+		std::cerr << "cannot change to uid of user " << Config.dedicated_user << ": " << strerror(errno) << std::endl;
 		exit(1);
 	}
-	config.user_home_folder = userinfo->pw_dir ? userinfo->pw_dir : "";
+	Config.user_home_folder = userinfo->pw_dir ? userinfo->pw_dir : "";
 }
 
 bool Daemonize()
@@ -68,7 +66,7 @@ bool Daemonize()
 	if (daemon(0, 0) < 0)
 		return false;
 	
-	std::ofstream f(config.file_pid.c_str(), std::ios_base::trunc);
+	std::ofstream f(Config.file_pid.c_str(), std::ios_base::trunc);
 	if (f.is_open())
 	{
 		pid_t pid = getpid();
@@ -82,13 +80,13 @@ bool Daemonize()
 
 void ClearCache()
 {
-	std::ofstream f(config.file_cache.c_str(), std::ios::trunc);
+	std::ofstream f(Config.file_cache.c_str(), std::ios::trunc);
 	f.close();
 }
 
 void GetCachedSongs(std::vector<std::string> &v)
 {
-	std::ifstream f(config.file_cache.c_str());
+	std::ifstream f(Config.file_cache.c_str());
 	if (f.is_open())
 	{
 		std::string line;
@@ -101,9 +99,9 @@ void GetCachedSongs(std::vector<std::string> &v)
 	}
 }
 
-void Cache(const std::string &s)
+void WriteCache(const std::string &s)
 {
-	std::ofstream f(config.file_cache.c_str(), std::ios::app);
+	std::ofstream f(Config.file_cache.c_str(), std::ios::app);
 	if (f.is_open())
 	{
 		f << s << std::endl;
@@ -113,9 +111,9 @@ void Cache(const std::string &s)
 
 void Log(LogLevel ll, const char *format, ...)
 {
-	if (config.log_level < ll)
+	if (Config.log_level < ll)
 		return;
-	FILE *f = fopen(config.file_log.c_str(), "a");
+	FILE *f = fopen(Config.file_log.c_str(), "a");
 	if (!f)
 	{
 		perror("Cannot open log file!\n");
@@ -130,7 +128,7 @@ void Log(LogLevel ll, const char *format, ...)
 	fclose(f);
 }
 
-void ignore_newlines(std::string &s)
+void IgnoreNewlines(std::string &s)
 {
 	for (size_t i = s.find("\n"); i != std::string::npos; i = s.find("\n"))
 		s.replace(i, 1, "");
@@ -157,7 +155,7 @@ std::string md5sum(const std::string &s)
 
 std::string DateTime()
 {
-	char result[32];
+	static char result[32];
 	time_t raw;
 	tm *t;
 	time(&raw);

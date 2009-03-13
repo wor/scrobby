@@ -47,11 +47,12 @@ struct ScrobbyConfig
 	bool daemonize;
 };
 
+extern ScrobbyConfig Config;
+
 void ParseArgv(ScrobbyConfig &, int, char **);
 bool CheckFiles(ScrobbyConfig &);
 void DefaultConfiguration(ScrobbyConfig &);
 bool ReadConfiguration(ScrobbyConfig &, const std::string &file);
-
 
 #endif
 

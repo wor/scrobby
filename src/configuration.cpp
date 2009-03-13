@@ -46,7 +46,10 @@
 
 using std::string;
 
-namespace {
+ScrobbyConfig Config;
+
+namespace
+{
 	std::string GetLineValue(const string &line, char a = '"', char b = '"')
 	{
 		int i = 0;

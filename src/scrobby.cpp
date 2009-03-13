@@ -33,63 +33,59 @@
 
 using std::string;
 
-ScrobbyConfig config;
-
-Handshake handshake;
+std::vector<string> SongsQueue;
+Handshake myHandshake;
 MPD::Song s;
 
-std::vector<string> SongsQueue;
+bool NowPlayingNotify = 0;
 
-bool notify_about_now_playing = 0;
-
-namespace {
+namespace
+{
 	void do_at_exit();
-	
 	void signal_handler(int);
-	bool handshake_sent_properly();
 	
-	void *handshake_handler(void *);
+	bool handshake_sent_properly();
 }
 
 int main(int argc, char **argv)
 {
-	DefaultConfiguration(config);
+	DefaultConfiguration(Config);
 	
 	if (argc > 1)
 	{
-		ParseArgv(config, argc, argv);
+		ParseArgv(Config, argc, argv);
 	}
-	if (!config.file_config.empty())
+	if (!Config.file_config.empty())
 	{
-		if (!ReadConfiguration(config, config.file_config))
+		if (!ReadConfiguration(Config, Config.file_config))
 		{
-			std::cerr << "cannot read configuration file: " << config.file_config << std::endl;
+			std::cerr << "cannot read configuration file: " << Config.file_config << std::endl;
 			return 1;
 		}
 	}
-	else if (!ReadConfiguration(config, config.user_home_folder + "/.scrobbyconf"))
+	else if (!ReadConfiguration(Config, Config.user_home_folder + "/.scrobbyconf"))
 	{
-		if (!ReadConfiguration(config, "/etc/scrobby.conf"))
+		if (!ReadConfiguration(Config, "/etc/scrobby.conf"))
 		{
 			std::cerr << "default configuration files not found!\n";
 			return 1;
 		}
 	}
-	if (config.log_level == llUndefined)
+	if (Config.log_level == llUndefined)
 	{
-		config.log_level = llInfo;
+		Config.log_level = llInfo;
 	}
-	if (config.lastfm_user.empty() || (config.lastfm_md5_password.empty() && config.lastfm_password.empty()))
+	if (Config.lastfm_user.empty() || (Config.lastfm_md5_password.empty() && Config.lastfm_password.empty()))
 	{
 		std::cerr << "last.fm user/password is not set.\n";
 		return 1;
 	}
 	ChangeToUser();
-	if (!CheckFiles(config))
+	if (!CheckFiles(Config))
 	{
 		return 1;
 	}
-	if (config.daemonize)
+	if (Config.daemonize)
 	{
 		if (!Daemonize())
 			std::cerr << "couldn't daemonize!\n";
@@ -99,12 +95,12 @@ int main(int argc, char **argv)
 	
 	MPD::Connection *Mpd = new MPD::Connection;
 	
-	if (config.mpd_host != "localhost")
-		Mpd->SetHostname(config.mpd_host);
-	if (config.mpd_port != 6600)
-		Mpd->SetPort(config.mpd_port);
+	if (Config.mpd_host != "localhost")
+		Mpd->SetHostname(Config.mpd_host);
+	if (Config.mpd_port != 6600)
+		Mpd->SetPort(Config.mpd_port);
 	
-	Mpd->SetTimeout(config.mpd_timeout);
+	Mpd->SetTimeout(Config.mpd_timeout);
 	Mpd->SetStatusUpdater(ScrobbyStatusChanged, NULL);
 	Mpd->SetErrorHandler(ScrobbyErrorCallback, NULL);
 	
@@ -125,14 +121,14 @@ int main(int argc, char **argv)
 	while (!usleep(500000))
 	{
 		time(&now);
-		if (now > handshake_delay && handshake.status != "OK")
+		if (now > handshake_delay && myHandshake.Status != "OK")
 		{
-			handshake.Clear();
-			if (handshake_sent_properly() && !handshake.status.empty())
+			myHandshake.Clear();
+			if (handshake_sent_properly() && !myHandshake.Status.empty())
 			{
-				Log(llInfo, "Handshake returned %s", handshake.status.c_str());
+				Log(llInfo, "Handshake returned %s", myHandshake.Status.c_str());
 			}
-			if (handshake.status == "OK")
+			if (myHandshake.Status == "OK")
 			{
 				Log(llInfo, "Connected to Audioscrobbler!");
 				if (!SongsQueue.empty())
@@ -142,18 +138,17 @@ int main(int argc, char **argv)
 					string result, postdata;
 					CURLcode code;
 					
-					CURL *submission = curl_easy_init();
-					
 					postdata = "s=";
-					postdata += handshake.session_id;
+					postdata += myHandshake.SessionID;
 					
 					for (std::vector<string>::const_iterator it = SongsQueue.begin(); it != SongsQueue.end(); it++)
 						postdata += *it;
 					
-					Log(llVerbose, "URL: %s", handshake.submission_url.c_str());
+					Log(llVerbose, "URL: %s", myHandshake.SubmissionURL.c_str());
 					Log(llVerbose, "Post data: %s", postdata.c_str());
 					
-					curl_easy_setopt(submission, CURLOPT_URL, handshake.submission_url.c_str());
+					CURL *submission = curl_easy_init();
+					curl_easy_setopt(submission, CURLOPT_URL, myHandshake.SubmissionURL.c_str());
 					curl_easy_setopt(submission, CURLOPT_POST, 1);
 					curl_easy_setopt(submission, CURLOPT_POSTFIELDS, postdata.c_str());
 					curl_easy_setopt(submission, CURLOPT_WRITEFUNCTION, write_data);
@@ -162,7 +157,7 @@ int main(int argc, char **argv)
 					code = curl_easy_perform(submission);
 					curl_easy_cleanup(submission);
 					
-					ignore_newlines(result);
+					IgnoreNewlines(result);
 					
 					if (result == "OK")
 					{
@@ -183,7 +178,7 @@ int main(int argc, char **argv)
 						}
 					}
 				}
-				notify_about_now_playing = !s.isStream();
+				NowPlayingNotify = !s.isStream();
 			}
 			else
 			{
@@ -202,7 +197,7 @@ int main(int argc, char **argv)
 			Log(llVerbose, "Connecting to MPD...");
 			if (Mpd->Connect())
 			{
-				Log(llInfo, "Connected to MPD at %s !", config.mpd_host.c_str());
+				Log(llInfo, "Connected to MPD at %s !", Config.mpd_host.c_str());
 				mpd_delay = 0;
 			}
 			else
@@ -216,13 +211,13 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-namespace {
-	
+namespace
+{
 	void do_at_exit()
 	{
 		s.Submit();
 		Log(llInfo, "Shutting down...");
-		if (remove(config.file_pid.c_str()) != 0)
+		if (remove(Config.file_pid.c_str()) != 0)
 			Log(llInfo, "Couldn't remove pid file!");
 	}
 	
@@ -239,11 +234,11 @@ namespace {
 		string timestamp = IntoStr(time(NULL));
 		
 		handshake_url = "http://post.audioscrobbler.com/?hs=true&p=1.2.1&c=mpc&v="VERSION"&u=";
-		handshake_url += config.lastfm_user;
+		handshake_url += Config.lastfm_user;
 		handshake_url += "&t=";
 		handshake_url += timestamp;
 		handshake_url += "&a=";
-		handshake_url += md5sum((config.lastfm_md5_password.empty() ? md5sum(config.lastfm_password) : config.lastfm_md5_password) + timestamp);
+		handshake_url += md5sum((Config.lastfm_md5_password.empty() ? md5sum(Config.lastfm_password) : Config.lastfm_md5_password) + timestamp);
 		
 		CURL *hs = curl_easy_init();
 		curl_easy_setopt(hs, CURLOPT_URL, handshake_url.c_str());
@@ -260,18 +255,18 @@ namespace {
 		}
 		
 		size_t i = result.find("\n");
-		handshake.status = result.substr(0, i);
-		if (handshake.status != "OK")
+		myHandshake.Status = result.substr(0, i);
+		if (myHandshake.Status != "OK")
 			return false;
 		result = result.substr(i+1);
 		i = result.find("\n");
-		handshake.session_id = result.substr(0, i);
+		myHandshake.SessionID = result.substr(0, i);
 		result = result.substr(i+1);
 		i = result.find("\n");
-		handshake.nowplaying_url = result.substr(0, i);
+		myHandshake.NowPlayingURL = result.substr(0, i);
 		result = result.substr(i+1);
-		ignore_newlines(result);
-		handshake.submission_url = result;
+		IgnoreNewlines(result);
+		myHandshake.SubmissionURL = result;
 		return true;
 	}
 }

@@ -28,22 +28,21 @@
 
 using std::string;
 
-MPD::State old_state = MPD::psUnknown;
-MPD::State current_state = MPD::psUnknown;
-
-extern Handshake handshake;
+extern bool NowPlayingNotify;
+extern Handshake myHandshake;
 extern MPD::Song s;
-
-extern bool notify_about_now_playing;
 
 void ScrobbyErrorCallback(MPD::Connection *, int, string errormessage, void *)
 {
-	ignore_newlines(errormessage);
+	IgnoreNewlines(errormessage);
 	Log(llVerbose, "MPD: %s", errormessage.c_str());
 }
 
 void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void *)
 {
+	static MPD::State old_state = MPD::psUnknown;
+	static MPD::State current_state = MPD::psUnknown;
+	
 	if (changed.State)
 	{
 		old_state = current_state;
@@ -72,10 +71,10 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		if (current_state == MPD::psPlay || current_state == MPD::psPause)
 		{
 			s.SetData(Mpd->CurrentSong());
-			notify_about_now_playing = s.Data && !s.isStream();
+			NowPlayingNotify = s.Data && !s.isStream();
 		}
 	}
-	if (notify_about_now_playing)
+	if (NowPlayingNotify)
 	{
 		if (s.Data && (!s.Data->artist || !s.Data->title))
 		{
@@ -89,7 +88,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		{
 			Log(llVerbose, "Playing song detected: %s - %s", s.Data->artist, s.Data->title);
 			
-			if (handshake.status == "OK" && !handshake.nowplaying_url.empty())
+			if (myHandshake.Status == "OK" && !myHandshake.NowPlayingURL.empty())
 			{
 				Log(llInfo, "Sending now playing notification...");
 			}
@@ -109,7 +108,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			char *c_track = s.Data->track ? curl_easy_escape(0, s.Data->track, 0) : NULL;
 			
 			postdata
-			<< "s=" << handshake.session_id
+			<< "s=" << myHandshake.SessionID
 			<< "&a=" << c_artist
 			<< "&t=" << c_title
 			<< "&b=";
@@ -128,11 +127,11 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			
 			postdata_str = postdata.str();
 			
-			Log(llVerbose, "URL: %s", handshake.nowplaying_url.c_str());
+			Log(llVerbose, "URL: %s", myHandshake.NowPlayingURL.c_str());
 			Log(llVerbose, "Post data: %s", postdata_str.c_str());
 			
 			CURL *np_notification = curl_easy_init();
-			curl_easy_setopt(np_notification, CURLOPT_URL, handshake.nowplaying_url.c_str());
+			curl_easy_setopt(np_notification, CURLOPT_URL, myHandshake.NowPlayingURL.c_str());
 			curl_easy_setopt(np_notification, CURLOPT_POST, 1);
 			curl_easy_setopt(np_notification, CURLOPT_POSTFIELDS, postdata_str.c_str());
 			curl_easy_setopt(np_notification, CURLOPT_WRITEFUNCTION, write_data);
@@ -141,7 +140,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			code = curl_easy_perform(np_notification);
 			curl_easy_cleanup(np_notification);
 			
-			ignore_newlines(result);
+			IgnoreNewlines(result);
 			
 			if (result == "OK")
 			{
@@ -164,10 +163,10 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		{
 			NOTIFICATION_FAILED:
 			
-			handshake.Clear(); // handshake probably failed if we are here, so reset it
-			Log(llVerbose, "Handshake status reset");
+			myHandshake.Clear(); // handshake probably failed if we are here, so reset it
+			Log(llVerbose, "Handshake reset");
 		}
-		notify_about_now_playing = 0;
+		NowPlayingNotify = 0;
 	}
 }
 

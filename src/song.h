@@ -23,13 +23,14 @@
 
 #include "libmpdclient.h"
 
-namespace MPD {
+namespace MPD
+{
 	class Song
 	{
 		public:
 			Song();
 			~Song();
-			void Clear();
+			
 			void SetData(mpd_Song *);
 			void Submit();
 			bool isStream() const;
@@ -39,6 +40,9 @@ namespace MPD {
 			time_t StartTime;
 			
 		private:
+			void Cache();
+			void Clear();
+			
 			bool canBeSubmitted();
 			bool itsIsStream;
 	};

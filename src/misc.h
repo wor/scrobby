@@ -36,10 +36,10 @@ bool Daemonize();
 void ClearCache();
 void GetCachedSongs(std::vector<std::string> &);
 
-void Cache(const std::string &);
+void WriteCache(const std::string &);
 void Log(LogLevel ll, const char *, ...);
 
-void ignore_newlines(std::string &);
+void IgnoreNewlines(std::string &);
 
 std::string md5sum(const std::string &);
 

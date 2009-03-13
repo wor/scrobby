@@ -31,16 +31,16 @@ struct Handshake
 {
 	void Clear()
 	{
-		status.clear();
-		session_id.clear();
-		nowplaying_url.clear();
-		submission_url.clear();
+		Status.clear();
+		SessionID.clear();
+		NowPlayingURL.clear();
+		SubmissionURL.clear();
 	}
 	
-	std::string status;
-	std::string session_id;
-	std::string nowplaying_url;
-	std::string submission_url;
+	std::string Status;
+	std::string SessionID;
+	std::string NowPlayingURL;
+	std::string SubmissionURL;
 };
 
 #endif
