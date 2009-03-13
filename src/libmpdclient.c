@@ -990,6 +990,7 @@ static void mpd_initSong(mpd_Song * song) {
 	song->performer = NULL;
 	song->disc = NULL;
 	song->comment = NULL;
+	song->musicbrainz_trackid = NULL;
 
 	song->time = MPD_SONG_NO_TIME;
 	song->pos = MPD_SONG_NO_NUM;
@@ -1009,6 +1010,7 @@ static void mpd_finishSong(mpd_Song * song) {
 	if(song->performer) free(song->performer);
 	if(song->disc) free(song->disc);
 	if(song->comment) free(song->comment);
+	if(song->musicbrainz_trackid) free(song->musicbrainz_trackid);
 }
 
 mpd_Song * mpd_newSong(void) {
@@ -1040,6 +1042,7 @@ mpd_Song * mpd_songDup(mpd_Song * song) {
 	if(song->performer) ret->performer = strdup(song->performer);
 	if(song->disc) ret->disc = strdup(song->disc);
 	if(song->comment) ret->comment = strdup(song->comment);
+	if(song->musicbrainz_trackid) ret->musicbrainz_trackid = strdup(song->musicbrainz_trackid);
 	ret->time = song->time;
 	ret->pos = song->pos;
 	ret->id = song->id;
@@ -1255,6 +1258,10 @@ mpd_InfoEntity * mpd_getNextInfoEntity(mpd_Connection * connection) {
 			else if(!entity->info.song->comment &&
 					strcmp(re->name, "Comment") == 0) {
 				entity->info.song->comment = strdup(re->value);
+			}
+			else if(!entity->info.song->comment &&
+					strcmp(re->name, "MUSICBRAINZ_TRACKID") == 0) {
+				entity->info.song->musicbrainz_trackid = strdup(re->value);
 			}
 		}
 		else if(entity->type == MPD_INFO_ENTITY_TYPE_DIRECTORY) {

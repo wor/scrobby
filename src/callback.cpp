@@ -106,6 +106,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			char *c_title = curl_easy_escape(0, s.Data->title, 0);
 			char *c_album = s.Data->album ? curl_easy_escape(0, s.Data->album, 0) : NULL;
 			char *c_track = s.Data->track ? curl_easy_escape(0, s.Data->track, 0) : NULL;
+			char *c_mb_trackid = s.Data->musicbrainz_trackid ? curl_easy_escape(0, s.Data->musicbrainz_trackid, 0) : NULL;
 			
 			postdata
 			<< "s=" << myHandshake.SessionID
@@ -119,11 +120,14 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			if (c_track)
 				postdata << c_track;
 			postdata << "&m=";
+			if (c_mb_trackid)
+				postdata << c_mb_trackid;
 			
 			curl_free(c_artist);
 			curl_free(c_title);
 			curl_free(c_album);
 			curl_free(c_track);
+			curl_free(c_mb_trackid);
 			
 			postdata_str = postdata.str();
 			

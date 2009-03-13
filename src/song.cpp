@@ -103,6 +103,7 @@ void MPD::Song::Submit()
 		char *c_title = curl_easy_escape(0, Data->title, 0);
 		char *c_album = Data->album ? curl_easy_escape(0, Data->album, 0) : NULL;
 		char *c_track = Data->track ? curl_easy_escape(0, Data->track, 0) : NULL;
+		char *c_mb_trackid = Data->musicbrainz_trackid ? curl_easy_escape(0, Data->musicbrainz_trackid, 0) : NULL;
 		
 		postdata
 		<< "s=" << myHandshake.SessionID
@@ -119,11 +120,14 @@ void MPD::Song::Submit()
 		if (c_track)
 			postdata << c_track;
 		postdata << "&m[0]=";
+		if (c_mb_trackid)
+			postdata << c_mb_trackid;
 		
 		curl_free(c_artist);
 		curl_free(c_title);
 		curl_free(c_album);
 		curl_free(c_track);
+		curl_free(c_mb_trackid);
 		
 		postdata_str = postdata.str();
 		
@@ -173,6 +177,7 @@ void MPD::Song::Cache()
 	char *c_title = curl_easy_escape(0, Data->title, 0);
 	char *c_album = Data->album ? curl_easy_escape(0, Data->album, 0) : NULL;
 	char *c_track = Data->track ? curl_easy_escape(0, Data->track, 0) : NULL;
+	char *c_mb_trackid = Data->musicbrainz_trackid ? curl_easy_escape(0, Data->musicbrainz_trackid, 0) : NULL;
 	
 	cache
 	<< "&a[" << Song::Queue.size() << "]=" << c_artist
@@ -188,6 +193,8 @@ void MPD::Song::Cache()
 	if (c_track)
 		cache << c_track;
 	cache << "&m[" << Song::Queue.size() << "]=";
+	if (c_mb_trackid)
+		cache << c_mb_trackid;
 	
 	cache_str = cache.str();
 	
@@ -197,6 +204,7 @@ void MPD::Song::Cache()
 	curl_free(c_title);
 	curl_free(c_album);
 	curl_free(c_track);
+	curl_free(c_mb_trackid);
 	
 	WriteCache(cache_str);
 	Song::Queue.push_back(cache_str);
