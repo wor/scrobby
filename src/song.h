@@ -31,18 +31,15 @@ namespace MPD {
 			~Song();
 			void Clear();
 			void SetData(mpd_Song *);
-			void SetStartTime();
 			void Submit();
 			bool isStream() const;
-			int & Playback();
-			const mpd_Song *& Data() const;
-		
+			
+			int Playback;
+			mpd_Song *Data;
+			time_t StartTime;
+			
 		private:
 			bool canBeSubmitted();
-		
-			mpd_Song *itsSong;
-			time_t itsStartTime;
-			int itsNoticedPlayback;
 			bool itsIsStream;
 	};
 }

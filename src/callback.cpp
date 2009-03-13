@@ -56,7 +56,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		static int crossfade;
 		if (Mpd->GetElapsedTime() == ((crossfade = Mpd->GetCrossfade()) ? crossfade : 0 ))
 			changed.SongID = 1;
-		s.Playback()++;
+		s.Playback++;
 	}
 	if (changed.SongID || (old_state == MPD::psPlay && current_state == MPD::psStop))
 	{
@@ -66,28 +66,28 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		if (old_state == MPD::psPlay && current_state == MPD::psStop)
 			old_state = MPD::psUnknown;
 		
-		if (Mpd->GetElapsedTime() < Mpd->GetCrossfade()+5)
-			s.SetStartTime();
+		if (Mpd->GetElapsedTime() < Mpd->GetCrossfade()+10)
+			time(&s.StartTime);
 		
 		if (current_state == MPD::psPlay || current_state == MPD::psPause)
 		{
 			s.SetData(Mpd->CurrentSong());
-			notify_about_now_playing = s.Data() && !s.isStream();
+			notify_about_now_playing = s.Data && !s.isStream();
 		}
 	}
 	if (notify_about_now_playing)
 	{
-		if (s.Data() && (!s.Data()->artist || !s.Data()->title))
+		if (s.Data && (!s.Data->artist || !s.Data->title))
 		{
 			Log(llInfo, "Playing song with missing tags detected.");
 		}
-		else if (s.Data() && s.Data()->time <= 0)
+		else if (s.Data && s.Data->time <= 0)
 		{
 			Log(llInfo, "Playing song with unknown length detected.");
 		}
-		else if (s.Data() && s.Data()->artist && s.Data()->title)
+		else if (s.Data && s.Data->artist && s.Data->title)
 		{
-			Log(llVerbose, "Playing song detected: %s - %s", s.Data()->artist, s.Data()->title);
+			Log(llVerbose, "Playing song detected: %s - %s", s.Data->artist, s.Data->title);
 			
 			if (handshake.status == "OK" && !handshake.nowplaying_url.empty())
 			{
@@ -99,42 +99,42 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 				goto NOTIFICATION_FAILED;
 			}
 			
-			string result, postdata;
+			std::ostringstream postdata;
+			string result, postdata_str;
 			CURLcode code;
 			
-			char *c_artist = curl_easy_escape(0, s.Data()->artist, 0);
-			char *c_title = curl_easy_escape(0, s.Data()->title, 0);
-			char *c_album = s.Data()->album ? curl_easy_escape(0, s.Data()->album, 0) : NULL;
-			char *c_track = s.Data()->track ? curl_easy_escape(0, s.Data()->track, 0) : NULL;
+			char *c_artist = curl_easy_escape(0, s.Data->artist, 0);
+			char *c_title = curl_easy_escape(0, s.Data->title, 0);
+			char *c_album = s.Data->album ? curl_easy_escape(0, s.Data->album, 0) : NULL;
+			char *c_track = s.Data->track ? curl_easy_escape(0, s.Data->track, 0) : NULL;
 			
-			postdata = "s=";
-			postdata += handshake.session_id;
-			postdata += "&a=";
-			postdata += c_artist;
-			postdata += "&t=";
-			postdata += c_title;
-			postdata += "&b=";
+			postdata
+			<< "s=" << handshake.session_id
+			<< "&a=" << c_artist
+			<< "&t=" << c_title
+			<< "&b=";
 			if (c_album)
-				postdata += c_album;
-			postdata += "&l=";
-			postdata += IntoStr(s.Data()->time);
-			postdata += "&n=";
+				postdata << c_album;
+			postdata << "&l=" << s.Data->time
+			<< "&n=";
 			if (c_track)
-				postdata += c_track;
-			postdata += "&m=";
+				postdata << c_track;
+			postdata << "&m=";
 			
 			curl_free(c_artist);
 			curl_free(c_title);
 			curl_free(c_album);
 			curl_free(c_track);
 			
+			postdata_str = postdata.str();
+			
 			Log(llVerbose, "URL: %s", handshake.nowplaying_url.c_str());
-			Log(llVerbose, "Post data: %s", postdata.c_str());
+			Log(llVerbose, "Post data: %s", postdata_str.c_str());
 			
 			CURL *np_notification = curl_easy_init();
 			curl_easy_setopt(np_notification, CURLOPT_URL, handshake.nowplaying_url.c_str());
 			curl_easy_setopt(np_notification, CURLOPT_POST, 1);
-			curl_easy_setopt(np_notification, CURLOPT_POSTFIELDS, postdata.c_str());
+			curl_easy_setopt(np_notification, CURLOPT_POSTFIELDS, postdata_str.c_str());
 			curl_easy_setopt(np_notification, CURLOPT_WRITEFUNCTION, write_data);
 			curl_easy_setopt(np_notification, CURLOPT_WRITEDATA, &result);
 			curl_easy_setopt(np_notification, CURLOPT_CONNECTTIMEOUT, curl_timeout);

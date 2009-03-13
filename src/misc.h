@@ -50,7 +50,7 @@ int StrToInt(const std::string &);
 template <class T>
 std::string IntoStr(T t)
 {
-	std::stringstream ss;
+	std::ostringstream ss;
 	ss << t;
 	return ss.str();
 }

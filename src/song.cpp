@@ -33,26 +33,26 @@ extern Handshake handshake;
 
 extern std::vector<string> SongsQueue;
 
-MPD::Song::Song() : itsSong(0),
-		    itsStartTime(0),
-		    itsNoticedPlayback(0),
+MPD::Song::Song() : Data(0),
+		    StartTime(0),
+		    Playback(0),
 		    itsIsStream(0)
 {
 }
 
 MPD::Song::~Song()
 {
-	if (itsSong)
-		mpd_freeSong(itsSong);
+	if (Data)
+		mpd_freeSong(Data);
 }
 
 void MPD::Song::Clear()
 {
-	if (itsSong)
-		mpd_freeSong(itsSong);
-	itsSong = 0;
-	itsStartTime = 0;
-	itsNoticedPlayback = 0;
+	if (Data)
+		mpd_freeSong(Data);
+	Data = 0;
+	StartTime = 0;
+	Playback = 0;
 	itsIsStream = 0;
 }
 
@@ -60,25 +60,20 @@ void MPD::Song::SetData(mpd_Song *song)
 {
 	if (!song)
 		return;
-	if (itsSong)
-		mpd_freeSong(itsSong);
-	itsSong = song;
-	itsIsStream = strncmp("http://", itsSong->file, 7) == 0;
-}
-
-void MPD::Song::SetStartTime()
-{
-	itsStartTime = time(NULL);
+	if (Data)
+		mpd_freeSong(Data);
+	Data = song;
+	itsIsStream = strncmp("http://", Data->file, 7) == 0;
 }
 
 void MPD::Song::Submit()
 {
-	if (!itsSong)
+	if (!Data)
 		return;
 	
 	if (itsIsStream)
 	{
-		itsSong->time = itsNoticedPlayback;
+		Data->time = Playback;
 	}
 	
 	if (canBeSubmitted())
@@ -91,47 +86,45 @@ void MPD::Song::Submit()
 		
 		Log(llInfo, "Submitting song...");
 		
-		string result, postdata;
+		std::ostringstream postdata;
+		string result, postdata_str;
 		CURLcode code;
 		
 		CURL *submission = curl_easy_init();
 		
-		char *c_artist = curl_easy_escape(submission, itsSong->artist, 0);
-		char *c_title = curl_easy_escape(submission, itsSong->title, 0);
-		char *c_album = itsSong->album ? curl_easy_escape(submission, itsSong->album, 0) : NULL;
-		char *c_track = itsSong->track ? curl_easy_escape(submission, itsSong->track, 0) : NULL;
+		char *c_artist = curl_easy_escape(submission, Data->artist, 0);
+		char *c_title = curl_easy_escape(submission, Data->title, 0);
+		char *c_album = Data->album ? curl_easy_escape(submission, Data->album, 0) : NULL;
+		char *c_track = Data->track ? curl_easy_escape(submission, Data->track, 0) : NULL;
 		
-		postdata = "s=";
-		postdata += handshake.session_id;
-		postdata += "&a[0]=";
-		postdata += c_artist;
-		postdata += "&t[0]=";
-		postdata += c_title;
-		postdata += "&i[0]=";
-		postdata += IntoStr(itsStartTime);
-		postdata += "&o[0]=P";
-		postdata += "&r[0]=";
-		postdata += "&l[0]=";
-		postdata += IntoStr(itsSong->time);
-		postdata += "&b[0]=";
+		postdata << "s=" << handshake.session_id
+		<< "&a[0]=" << c_artist
+		<< "&t[0]=" << c_title
+		<< "&i[0]=" << StartTime
+		<< "&o[0]=P"
+		<< "&r[0]="
+		<< "&l[0]=" << Data->time
+		<< "&b[0]=";
 		if (c_album)
-			postdata += c_album;
-		postdata += "&n[0]=";
+			postdata << c_album;
+		postdata << "&n[0]=";
 		if (c_track)
-			postdata += c_track;
-		postdata += "&m[0]=";
+			postdata << c_track;
+		postdata << "&m[0]=";
 		
 		curl_free(c_artist);
 		curl_free(c_title);
 		curl_free(c_album);
 		curl_free(c_track);
 		
+		postdata_str = postdata.str();
+		
 		Log(llVerbose, "URL: %s", handshake.submission_url.c_str());
-		Log(llVerbose, "Post data: %s", postdata.c_str());
+		Log(llVerbose, "Post data: %s", postdata_str.c_str());
 		
 		curl_easy_setopt(submission, CURLOPT_URL, handshake.submission_url.c_str());
 		curl_easy_setopt(submission, CURLOPT_POST, 1);
-		curl_easy_setopt(submission, CURLOPT_POSTFIELDS, postdata.c_str());
+		curl_easy_setopt(submission, CURLOPT_POSTFIELDS, postdata_str.c_str());
 		curl_easy_setopt(submission, CURLOPT_WRITEFUNCTION, write_data);
 		curl_easy_setopt(submission, CURLOPT_WRITEDATA, &result);
 		curl_easy_setopt(submission, CURLOPT_CONNECTTIMEOUT, curl_timeout);
@@ -165,59 +158,40 @@ void MPD::Song::Submit()
 		handshake.Clear(); // handshake probably failed if we are here, so reset it
 		Log(llVerbose, "Handshake status reset");
 		
-		string cache;
-		string offset = IntoStr(SongsQueue.size());
+		std::ostringstream cache;
+		string cache_str;
 		
-		char *c_artist = curl_easy_escape(0, itsSong->artist, 0);
-		char *c_title = curl_easy_escape(0, itsSong->title, 0);
-		char *c_album = itsSong->album ? curl_easy_escape(0, itsSong->album, 0) : NULL;
-		char *c_track = itsSong->track ? curl_easy_escape(0, itsSong->track, 0) : NULL;
+		char *c_artist = curl_easy_escape(0, Data->artist, 0);
+		char *c_title = curl_easy_escape(0, Data->title, 0);
+		char *c_album = Data->album ? curl_easy_escape(0, Data->album, 0) : NULL;
+		char *c_track = Data->track ? curl_easy_escape(0, Data->track, 0) : NULL;
 		
-		cache = "&a[";
-		cache += offset;
-		cache += "]=";
-		cache += c_artist;
-		cache += "&t[";
-		cache += offset;
-		cache += "]=";
-		cache += c_title;
-		cache += "&i[";
-		cache += offset;
-		cache += "]=";
-		cache += IntoStr(itsStartTime);
-		cache += "&o[";
-		cache += offset;
-		cache += "]=P";
-		cache += "&r[";
-		cache += offset;
-		cache += "]=";
-		cache += "&l[";
-		cache += offset;
-		cache += "]=";
-		cache += IntoStr(itsSong->time);
-		cache += "&b[";
-		cache += offset;
-		cache += "]=";
+		cache
+		<< "&a[" << SongsQueue.size() << "]=" << c_artist
+		<< "&t[" << SongsQueue.size() << "]=" << c_title
+		<< "&i[" << SongsQueue.size() << "]=" << StartTime
+		<< "&o[" << SongsQueue.size() << "]=P"
+		<< "&r[" << SongsQueue.size() << "]="
+		<< "&l[" << SongsQueue.size() << "]=" << Data->time
+		<< "&b[" << SongsQueue.size() << "]=";
 		if (c_album)
-			cache += c_album;
-		cache += "&n[";
-		cache += offset;
-		cache += "]=";
+			cache << c_album;
+		cache << "&n[" << SongsQueue.size() << "]=";
 		if (c_track)
-			cache += c_track;
-		cache += "&m[";
-		cache += offset;
-		cache += "]=";
+			cache << c_track;
+		cache << "&m[" << SongsQueue.size() << "]=";
 		
-		Log(llVerbose, "Metadata: %s", cache.c_str());
+		cache_str = cache.str();
+		
+		Log(llVerbose, "Metadata: %s", cache_str.c_str());
 		
 		curl_free(c_artist);
 		curl_free(c_title);
 		curl_free(c_album);
 		curl_free(c_track);
 		
-		Cache(cache);
-		SongsQueue.push_back(cache);
+		Cache(cache_str);
+		SongsQueue.push_back(cache_str);
 		Log(llInfo, "Song cached.");
 	}
 	Clear();
@@ -228,35 +202,25 @@ bool MPD::Song::isStream() const
 	return itsIsStream;
 }
 
-int & MPD::Song::Playback()
-{
-	return itsNoticedPlayback;
-}
-
-const mpd_Song *& MPD::Song::Data() const
-{
-	return (const mpd_Song *&)itsSong;
-}
-
 bool MPD::Song::canBeSubmitted()
 {
-	if (!itsStartTime || itsSong->time < 30 || !itsSong->artist || !itsSong->title)
+	if (!StartTime || Data->time < 30 || !Data->artist || !Data->title)
 	{
-		if (!itsStartTime)
+		if (!StartTime)
 		{
 			Log(llInfo, "Song's start time isn't known, not submitting.");
 		}
-		else if (itsSong->time < 30)
+		else if (Data->time < 30)
 		{
 			Log(llInfo, "Song's length is too short, not submitting.");
 		}
-		else if (!itsSong->artist || !itsSong->title)
+		else if (!Data->artist || !Data->title)
 		{
 			Log(llInfo, "Song has missing tags, not submitting.");
 		}
 		return false;
 	}
-	else if (itsNoticedPlayback < 4*60 && itsNoticedPlayback < itsSong->time/2)
+	else if (Playback < 4*60 && Playback < Data->time/2)
 	{
 		Log(llInfo, "Noticed playback was too short, not submitting.");
 		return false;
