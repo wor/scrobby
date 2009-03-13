@@ -36,8 +36,6 @@ using std::string;
 Handshake myHandshake;
 MPD::Song s;
 
-bool NowPlayingNotify = 0;
-
 namespace
 {
 	void do_at_exit();
@@ -131,7 +129,6 @@ int main(int argc, char **argv)
 			{
 				Log(llInfo, "Connected to Audioscrobbler!");
 				handshake_delay = 0;
-				NowPlayingNotify = !s.isStream();
 			}
 			else
 			{

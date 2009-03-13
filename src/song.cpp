@@ -156,9 +156,9 @@ void MPD::Song::Submit()
 			else
 			{
 				Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
+				myHandshake.Clear(); // handshake probably failed if we are here, so reset it
+				Log(llVerbose, "Handshake reset");
 			}
-			myHandshake.Clear(); // handshake probably failed if we are here, so reset it
-			Log(llVerbose, "Handshake reset");
 			Cache();
 		}
 	}

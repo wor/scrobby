@@ -28,7 +28,6 @@
 
 using std::string;
 
-extern bool NowPlayingNotify;
 extern Handshake myHandshake;
 extern MPD::Song s;
 
@@ -42,6 +41,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 {
 	static MPD::State old_state = MPD::psUnknown;
 	static MPD::State current_state = MPD::psUnknown;
+	static bool NowPlayingNotify = 0;
 	
 	if (changed.State)
 	{
@@ -95,7 +95,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			else
 			{
 				Log(llInfo, "Notification not sent due to problem with connection.");
-				goto NOTIFICATION_FAILED;
+				return;
 			}
 			
 			std::ostringstream postdata;
@@ -155,16 +155,10 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 				else
 				{
 					Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
+					myHandshake.Clear(); // handshake probably failed if we are here, so reset it
+					Log(llVerbose, "Handshake reset");
 				}
-				goto NOTIFICATION_FAILED;
 			}
-		}
-		if (0)
-		{
-			NOTIFICATION_FAILED:
-			
-			myHandshake.Clear(); // handshake probably failed if we are here, so reset it
-			Log(llVerbose, "Handshake reset");
 		}
 		NowPlayingNotify = 0;
 	}
