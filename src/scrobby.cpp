@@ -159,7 +159,6 @@ int main(int argc, char **argv)
 					curl_easy_setopt(submission, CURLOPT_WRITEFUNCTION, write_data);
 					curl_easy_setopt(submission, CURLOPT_WRITEDATA, &result);
 					curl_easy_setopt(submission, CURLOPT_CONNECTTIMEOUT, curl_timeout);
-					curl_easy_setopt(submission, CURLOPT_NOSIGNAL, 1);
 					code = curl_easy_perform(submission);
 					curl_easy_cleanup(submission);
 					
@@ -251,7 +250,6 @@ namespace {
 		curl_easy_setopt(hs, CURLOPT_WRITEFUNCTION, write_data);
 		curl_easy_setopt(hs, CURLOPT_WRITEDATA, &result);
 		curl_easy_setopt(hs, CURLOPT_CONNECTTIMEOUT, curl_timeout);
-		curl_easy_setopt(hs, CURLOPT_NOSIGNAL, 1);
 		code = curl_easy_perform(hs);
 		curl_easy_cleanup(hs);
 		
