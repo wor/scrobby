@@ -141,7 +141,11 @@ void MPD::Song::Submit()
 		curl_easy_setopt(submission, CURLOPT_POSTFIELDS, postdata_str.c_str());
 		curl_easy_setopt(submission, CURLOPT_WRITEFUNCTION, write_data);
 		curl_easy_setopt(submission, CURLOPT_WRITEDATA, &result);
-		curl_easy_setopt(submission, CURLOPT_CONNECTTIMEOUT, curl_timeout);
+		curl_easy_setopt(submission, CURLOPT_CONNECTTIMEOUT, curl_connecttimeout);
+		curl_easy_setopt(submission, CURLOPT_TIMEOUT, curl_timeout);
+		curl_easy_setopt(submission, CURLOPT_DNS_CACHE_TIMEOUT, 0);
+		curl_easy_setopt(submission, CURLOPT_NOPROGRESS, 1);
+		curl_easy_setopt(submission, CURLOPT_NOSIGNAL, 1);
 		code = curl_easy_perform(submission);
 		curl_easy_cleanup(submission);
 		
@@ -283,7 +287,11 @@ void MPD::Song::SendQueue()
 	curl_easy_setopt(submission, CURLOPT_POSTFIELDS, postdata.c_str());
 	curl_easy_setopt(submission, CURLOPT_WRITEFUNCTION, write_data);
 	curl_easy_setopt(submission, CURLOPT_WRITEDATA, &result);
-	curl_easy_setopt(submission, CURLOPT_CONNECTTIMEOUT, curl_timeout);
+	curl_easy_setopt(submission, CURLOPT_CONNECTTIMEOUT, curl_connecttimeout);
+	curl_easy_setopt(submission, CURLOPT_TIMEOUT, curl_timeout);
+	curl_easy_setopt(submission, CURLOPT_DNS_CACHE_TIMEOUT, 0);
+	curl_easy_setopt(submission, CURLOPT_NOPROGRESS, 1);
+	curl_easy_setopt(submission, CURLOPT_NOSIGNAL, 1);
 	code = curl_easy_perform(submission);
 	curl_easy_cleanup(submission);
 	

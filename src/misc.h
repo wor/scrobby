@@ -26,7 +26,7 @@
 
 #include "configuration.h"
 
-size_t write_data(char *, size_t, size_t, std::string);
+size_t write_data(char *, size_t, size_t, void *);
 
 void ChangeToUser();
 

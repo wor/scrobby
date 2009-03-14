@@ -25,6 +25,7 @@
 # include <config.h>
 #endif
 
+const int curl_connecttimeout = 1;
 const int curl_timeout = 10;
 
 struct Handshake

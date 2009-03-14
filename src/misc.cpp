@@ -29,10 +29,10 @@
 #include "configuration.h"
 #include "misc.h"
 
-size_t write_data(char *buffer, size_t size, size_t nmemb, std::string data)
+size_t write_data(char *buffer, size_t size, size_t nmemb, void *data)
 {
 	size_t result = size * nmemb;
-	data.append(buffer, result);
+	static_cast<std::string *>(data)->append(buffer, result);
 	return result;
 }
 

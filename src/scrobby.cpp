@@ -193,7 +193,11 @@ namespace
 		curl_easy_setopt(hs, CURLOPT_URL, handshake_url.c_str());
 		curl_easy_setopt(hs, CURLOPT_WRITEFUNCTION, write_data);
 		curl_easy_setopt(hs, CURLOPT_WRITEDATA, &result);
-		curl_easy_setopt(hs, CURLOPT_CONNECTTIMEOUT, curl_timeout);
+		curl_easy_setopt(hs, CURLOPT_CONNECTTIMEOUT, curl_connecttimeout);
+		curl_easy_setopt(hs, CURLOPT_TIMEOUT, curl_timeout);
+		curl_easy_setopt(hs, CURLOPT_DNS_CACHE_TIMEOUT, 0);
+		curl_easy_setopt(hs, CURLOPT_NOPROGRESS, 1);
+		curl_easy_setopt(hs, CURLOPT_NOSIGNAL, 1);
 		code = curl_easy_perform(hs);
 		curl_easy_cleanup(hs);
 		

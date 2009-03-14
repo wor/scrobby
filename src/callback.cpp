@@ -134,7 +134,11 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		curl_easy_setopt(np_notification, CURLOPT_POSTFIELDS, postdata_str.c_str());
 		curl_easy_setopt(np_notification, CURLOPT_WRITEFUNCTION, write_data);
 		curl_easy_setopt(np_notification, CURLOPT_WRITEDATA, &result);
-		curl_easy_setopt(np_notification, CURLOPT_CONNECTTIMEOUT, curl_timeout);
+		curl_easy_setopt(np_notification, CURLOPT_CONNECTTIMEOUT, curl_connecttimeout);
+		curl_easy_setopt(np_notification, CURLOPT_TIMEOUT, curl_timeout);
+		curl_easy_setopt(np_notification, CURLOPT_DNS_CACHE_TIMEOUT, 0);
+		curl_easy_setopt(np_notification, CURLOPT_NOPROGRESS, 1);
+		curl_easy_setopt(np_notification, CURLOPT_NOSIGNAL, 1);
 		code = curl_easy_perform(np_notification);
 		curl_easy_cleanup(np_notification);
 		
