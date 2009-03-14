@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 	time_t handshake_ts = 0;
 	time_t mpd_ts = 0;
 	
-	while (!usleep(500000))
+	while (!sleep(1))
 	{
 		time(&now);
 		if (now > handshake_ts && myHandshake.Status != "OK")
