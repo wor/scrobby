@@ -79,6 +79,7 @@ void MPD::Song::Submit()
 	{
 		if (!Queue.empty())
 		{
+			Log(llInfo, "Adding song to queue...");
 			Cache();
 			Clear();
 			SendQueue();
@@ -262,7 +263,7 @@ void MPD::Song::SendQueue()
 	if (Song::Queue.empty())
 		return;
 	
-	Log(llInfo, "Queue is not empty, submitting songs...");
+	Log(llInfo, "Submitting songs from queue...");
 	
 	string result, postdata;
 	CURLcode code;
