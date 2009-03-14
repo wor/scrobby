@@ -1259,7 +1259,7 @@ mpd_InfoEntity * mpd_getNextInfoEntity(mpd_Connection * connection) {
 					strcmp(re->name, "Comment") == 0) {
 				entity->info.song->comment = strdup(re->value);
 			}
-			else if(!entity->info.song->comment &&
+			else if(!entity->info.song->musicbrainz_trackid &&
 					strcmp(re->name, "MUSICBRAINZ_TRACKID") == 0) {
 				entity->info.song->musicbrainz_trackid = strdup(re->value);
 			}
