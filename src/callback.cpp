@@ -74,97 +74,90 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			NowPlayingNotify = s.Data && !s.isStream();
 		}
 	}
-	if (NowPlayingNotify)
+	if (!NowPlayingNotify || !s.Data || myHandshake.Status != "OK" || myHandshake.NowPlayingURL.empty())
+		return;
+	
+	NowPlayingNotify = 0;
+	
+	if (!s.Data->artist || !s.Data->title)
 	{
-		if (s.Data && (!s.Data->artist || !s.Data->title))
+		Log(llInfo, "Playing song with missing tags detected.");
+	}
+	else if (s.Data->time <= 0)
+	{
+		Log(llInfo, "Playing song with unknown length detected.");
+	}
+	else if (s.Data->artist && s.Data->title)
+	{
+		Log(llVerbose, "Playing song detected: %s - %s", s.Data->artist, s.Data->title);
+		Log(llInfo, "Sending now playing notification...");
+		
+		std::ostringstream postdata;
+		string result, postdata_str;
+		CURLcode code;
+		
+		char *c_artist = curl_easy_escape(0, s.Data->artist, 0);
+		char *c_title = curl_easy_escape(0, s.Data->title, 0);
+		char *c_album = s.Data->album ? curl_easy_escape(0, s.Data->album, 0) : NULL;
+		char *c_track = s.Data->track ? curl_easy_escape(0, s.Data->track, 0) : NULL;
+		char *c_mb_trackid = s.Data->musicbrainz_trackid ? curl_easy_escape(0, s.Data->musicbrainz_trackid, 0) : NULL;
+		
+		postdata
+		<< "s=" << myHandshake.SessionID
+		<< "&a=" << c_artist
+		<< "&t=" << c_title
+		<< "&b=";
+		if (c_album)
+			postdata << c_album;
+		postdata << "&l=" << s.Data->time
+		<< "&n=";
+		if (c_track)
+			postdata << c_track;
+		postdata << "&m=";
+		if (c_mb_trackid)
+			postdata << c_mb_trackid;
+		
+		curl_free(c_artist);
+		curl_free(c_title);
+		curl_free(c_album);
+		curl_free(c_track);
+		curl_free(c_mb_trackid);
+		
+		postdata_str = postdata.str();
+		
+		Log(llVerbose, "URL: %s", myHandshake.NowPlayingURL.c_str());
+		Log(llVerbose, "Post data: %s", postdata_str.c_str());
+		
+		CURL *np_notification = curl_easy_init();
+		curl_easy_setopt(np_notification, CURLOPT_URL, myHandshake.NowPlayingURL.c_str());
+		curl_easy_setopt(np_notification, CURLOPT_POST, 1);
+		curl_easy_setopt(np_notification, CURLOPT_POSTFIELDS, postdata_str.c_str());
+		curl_easy_setopt(np_notification, CURLOPT_WRITEFUNCTION, write_data);
+		curl_easy_setopt(np_notification, CURLOPT_WRITEDATA, &result);
+		curl_easy_setopt(np_notification, CURLOPT_CONNECTTIMEOUT, curl_timeout);
+		code = curl_easy_perform(np_notification);
+		curl_easy_cleanup(np_notification);
+		
+		IgnoreNewlines(result);
+		
+		if (result == "OK")
 		{
-			Log(llInfo, "Playing song with missing tags detected.");
+			Log(llInfo, "Notification about currently playing song sent.");
 		}
-		else if (s.Data && s.Data->time <= 0)
+		else
 		{
-			Log(llInfo, "Playing song with unknown length detected.");
-		}
-		else if (s.Data && s.Data->artist && s.Data->title)
-		{
-			Log(llVerbose, "Playing song detected: %s - %s", s.Data->artist, s.Data->title);
-			
-			if (myHandshake.Status == "OK" && !myHandshake.NowPlayingURL.empty())
+			if (result.empty())
 			{
-				Log(llInfo, "Sending now playing notification...");
+				Log(llInfo, "Error while sending notification: %s", curl_easy_strerror(code));
 			}
 			else
 			{
-				Log(llInfo, "Notification not sent due to problem with connection.");
-				return;
-			}
-			
-			std::ostringstream postdata;
-			string result, postdata_str;
-			CURLcode code;
-			
-			char *c_artist = curl_easy_escape(0, s.Data->artist, 0);
-			char *c_title = curl_easy_escape(0, s.Data->title, 0);
-			char *c_album = s.Data->album ? curl_easy_escape(0, s.Data->album, 0) : NULL;
-			char *c_track = s.Data->track ? curl_easy_escape(0, s.Data->track, 0) : NULL;
-			char *c_mb_trackid = s.Data->musicbrainz_trackid ? curl_easy_escape(0, s.Data->musicbrainz_trackid, 0) : NULL;
-			
-			postdata
-			<< "s=" << myHandshake.SessionID
-			<< "&a=" << c_artist
-			<< "&t=" << c_title
-			<< "&b=";
-			if (c_album)
-				postdata << c_album;
-			postdata << "&l=" << s.Data->time
-			<< "&n=";
-			if (c_track)
-				postdata << c_track;
-			postdata << "&m=";
-			if (c_mb_trackid)
-				postdata << c_mb_trackid;
-			
-			curl_free(c_artist);
-			curl_free(c_title);
-			curl_free(c_album);
-			curl_free(c_track);
-			curl_free(c_mb_trackid);
-			
-			postdata_str = postdata.str();
-			
-			Log(llVerbose, "URL: %s", myHandshake.NowPlayingURL.c_str());
-			Log(llVerbose, "Post data: %s", postdata_str.c_str());
-			
-			CURL *np_notification = curl_easy_init();
-			curl_easy_setopt(np_notification, CURLOPT_URL, myHandshake.NowPlayingURL.c_str());
-			curl_easy_setopt(np_notification, CURLOPT_POST, 1);
-			curl_easy_setopt(np_notification, CURLOPT_POSTFIELDS, postdata_str.c_str());
-			curl_easy_setopt(np_notification, CURLOPT_WRITEFUNCTION, write_data);
-			curl_easy_setopt(np_notification, CURLOPT_WRITEDATA, &result);
-			curl_easy_setopt(np_notification, CURLOPT_CONNECTTIMEOUT, curl_timeout);
-			code = curl_easy_perform(np_notification);
-			curl_easy_cleanup(np_notification);
-			
-			IgnoreNewlines(result);
-			
-			if (result == "OK")
-			{
-				Log(llInfo, "Notification about currently playing song sent.");
-			}
-			else
-			{
-				if (result.empty())
-				{
-					Log(llInfo, "Error while sending notification: %s", curl_easy_strerror(code));
-				}
-				else
-				{
-					Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
-					myHandshake.Clear(); // handshake probably failed if we are here, so reset it
-					Log(llVerbose, "Handshake reset");
-				}
+				Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
+				myHandshake.Clear(); // handshake probably failed if we are here, so reset it
+				Log(llVerbose, "Handshake reset");
+				NowPlayingNotify = 1;
 			}
 		}
-		NowPlayingNotify = 0;
 	}
 }
 
