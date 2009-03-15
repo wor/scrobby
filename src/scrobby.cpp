@@ -245,7 +245,19 @@ namespace
 		size_t i = result.find("\n");
 		myHandshake.Status = result.substr(0, i);
 		if (myHandshake.Status != "OK")
-			return false;
+		{
+			if (myHandshake.Status == "BANNED")
+			{
+				Log(llInfo, "Ops, this version of scrobby is banned. Please update to the newest one or if it's the newest, inform me about it (electricityispower@gmail.com)");
+			}
+			else if (myHandshake.Status == "BADAUTH")
+			{
+				Log(llInfo, "User authentication failed. Please recheck your username/password settings.");
+			}
+			else
+				return false;
+			exit(1);
+		}
 		result = result.substr(i+1);
 		i = result.find("\n");
 		myHandshake.SessionID = result.substr(0, i);

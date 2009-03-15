@@ -243,13 +243,11 @@ bool MPD::Song::SendQueue()
 		else
 		{
 			Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
-			if (result == "BADSESSION")
-			{
-				myHandshake.Lock();
-				myHandshake.Clear(); // handshake probably failed if we are here, so reset it
-				myHandshake.Unlock();
-				Log(llVerbose, "Handshake reset");
-			}
+			// BADSESSION or FAILED was returned, handshake needs resetting.
+			myHandshake.Lock();
+			myHandshake.Clear();
+			myHandshake.Unlock();
+			Log(llVerbose, "Handshake reset");
 		}
 		return false;
 	}
