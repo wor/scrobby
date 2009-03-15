@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 			{
 				Log(llInfo, "Handshake returned %s", myHandshake.Status.c_str());
 			}
-			if (!myHandshake.OK())
+			if (myHandshake.OK())
 			{
 				Log(llInfo, "Connected to Audioscrobbler!");
 				handshake_delay = 0;
