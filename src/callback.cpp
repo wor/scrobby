@@ -41,7 +41,6 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 {
 	static MPD::State old_state = MPD::psUnknown;
 	static MPD::State current_state = MPD::psUnknown;
-	static bool NowPlayingNotify = 0;
 	
 	if (changed.State)
 	{
@@ -71,14 +70,14 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		if (current_state == MPD::psPlay || current_state == MPD::psPause)
 		{
 			s.SetData(Mpd->CurrentSong());
-			NowPlayingNotify = s.Data && !s.isStream();
+			MPD::Song::NowPlayingNotify = s.Data && !s.isStream();
 		}
 	}
 	
-	if (!NowPlayingNotify || !s.Data)
+	if (!MPD::Song::NowPlayingNotify || !s.Data)
 		 return;
 	
-	NowPlayingNotify = 0;
+	MPD::Song::NowPlayingNotify = 0;
 	
 	if (!s.Data->artist || !s.Data->title)
 	{
@@ -94,7 +93,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		if (!myHandshake.OK())
 		{
 			myHandshake.Unlock();
-			NowPlayingNotify = 1;
+			MPD::Song::NowPlayingNotify = 1;
 			return;
 		}
 		
@@ -174,7 +173,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 				myHandshake.Clear();
 				myHandshake.Unlock();
 				Log(llVerbose, "Handshake reset");
-				NowPlayingNotify = 1;
+				MPD::Song::NowPlayingNotify = 1;
 			}
 		}
 	}

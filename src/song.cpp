@@ -31,9 +31,11 @@
 using std::string;
 
 extern Handshake myHandshake;
+extern MPD::Song s;
+
+bool MPD::Song::NowPlayingNotify = 0;
 
 std::deque<std::string> MPD::Song::SubmitQueue;
-
 std::queue<MPD::Song> MPD::Song::Queue;
 
 pthread_mutex_t MPD::Song::itsQueueMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -232,6 +234,7 @@ bool MPD::Song::SendQueue()
 		SubmitQueue.clear();
 		std::ofstream f(Config.file_cache.c_str(), std::ios::trunc);
 		f.close();
+		NowPlayingNotify = s.Data && !s.isStream();
 		return true;
 	}
 	else

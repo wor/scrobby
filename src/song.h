@@ -50,6 +50,8 @@ namespace MPD
 			
 			static bool SendQueue();
 			
+			static bool NowPlayingNotify;
+			
 			static std::queue<MPD::Song> Queue;
 			static std::deque<std::string> SubmitQueue;
 			
