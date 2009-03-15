@@ -25,8 +25,11 @@
 # include <config.h>
 #endif
 
-const int curl_connecttimeout = 2;
+const int curl_connecttimeout = 5;
 const int curl_timeout = 10;
+
+const int curl_queue_connecttimeout = 30;
+const int curl_queue_timeout = 60;
 
 struct Handshake
 {
@@ -38,10 +41,18 @@ struct Handshake
 		SubmissionURL.clear();
 	}
 	
+	bool OK() { return Status == "OK"; }
+	
+	void Lock() { pthread_mutex_lock(&itsLock); }
+	void Unlock() { pthread_mutex_unlock(&itsLock); }
+	
 	std::string Status;
 	std::string SessionID;
 	std::string NowPlayingURL;
 	std::string SubmissionURL;
+	
+	private:
+		static pthread_mutex_t itsLock;
 };
 
 #endif

@@ -74,8 +74,9 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			NowPlayingNotify = s.Data && !s.isStream();
 		}
 	}
-	if (!NowPlayingNotify || !s.Data || myHandshake.Status != "OK" || myHandshake.NowPlayingURL.empty())
-		return;
+	
+	if (!NowPlayingNotify || !s.Data)
+		 return;
 	
 	NowPlayingNotify = 0;
 	
@@ -89,11 +90,19 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 	}
 	else if (s.Data->artist && s.Data->title)
 	{
+		myHandshake.Lock();
+		if (!myHandshake.OK())
+		{
+			myHandshake.Unlock();
+			NowPlayingNotify = 1;
+			return;
+		}
+		
 		Log(llVerbose, "Playing song detected: %s - %s", s.Data->artist, s.Data->title);
 		Log(llInfo, "Sending now playing notification...");
 		
 		std::ostringstream postdata;
-		string result, postdata_str;
+		string url, result, postdata_str;
 		CURLcode code;
 		
 		char *c_artist = curl_easy_escape(0, s.Data->artist, 0);
@@ -128,8 +137,11 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		Log(llVerbose, "URL: %s", myHandshake.NowPlayingURL.c_str());
 		Log(llVerbose, "Post data: %s", postdata_str.c_str());
 		
+		url = myHandshake.NowPlayingURL;
+		myHandshake.Unlock();
+		
 		CURL *np_notification = curl_easy_init();
-		curl_easy_setopt(np_notification, CURLOPT_URL, myHandshake.NowPlayingURL.c_str());
+		curl_easy_setopt(np_notification, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(np_notification, CURLOPT_POST, 1);
 		curl_easy_setopt(np_notification, CURLOPT_POSTFIELDS, postdata_str.c_str());
 		curl_easy_setopt(np_notification, CURLOPT_WRITEFUNCTION, write_data);
@@ -157,7 +169,10 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			else
 			{
 				Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
-				myHandshake.Clear(); // handshake probably failed if we are here, so reset it
+				// it can return only OK or BADSESSION, so if we are here, BADSESSION was returned.
+				myHandshake.Lock();
+				myHandshake.Clear();
+				myHandshake.Unlock();
 				Log(llVerbose, "Handshake reset");
 				NowPlayingNotify = 1;
 			}

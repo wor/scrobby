@@ -27,12 +27,10 @@
 #include "configuration.h"
 
 size_t write_data(char *, size_t, size_t, void *);
-
+size_t queue_write_data(char *, size_t, size_t, void *);
 void ChangeToUser();
 
 bool Daemonize();
-
-void ClearCache();
 
 void WriteCache(const std::string &);
 void Log(LogLevel ll, const char *, ...);

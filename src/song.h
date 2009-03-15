@@ -21,6 +21,7 @@
 #ifndef _SONG_H
 #define _SONG_H
 
+#include <queue>
 #include <deque>
 
 #include "libmpdclient.h"
@@ -41,14 +42,22 @@ namespace MPD
 			time_t StartTime;
 			int Playback;
 			
+			static void LockQueue() { pthread_mutex_lock(&itsQueueMutex); }
+			static void UnlockQueue() { pthread_mutex_unlock(&itsQueueMutex); }
+			
 			static void GetCached();
+			static void ExtractQueue();
+			
 			static bool SendQueue();
 			
-			static std::deque<std::string> Queue;
+			static std::queue<MPD::Song> Queue;
+			static std::deque<std::string> SubmitQueue;
 			
 		private:
-			void Cache();
 			void Clear();
+			
+			static pthread_mutex_t itsSubmitQueueMutex;
+			static pthread_mutex_t itsQueueMutex;
 			
 			bool canBeSubmitted();
 			bool itsIsStream;

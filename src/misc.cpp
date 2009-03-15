@@ -36,6 +36,13 @@ size_t write_data(char *buffer, size_t size, size_t nmemb, void *data)
 	return result;
 }
 
+size_t queue_write_data(char *buffer, size_t size, size_t nmemb, void *data)
+{
+	size_t result = size * nmemb;
+	static_cast<std::string *>(data)->append(buffer, result);
+	return result;
+}
+
 void ChangeToUser()
 {
 	if (Config.dedicated_user.empty() || getuid() != 0)
@@ -75,12 +82,6 @@ bool Daemonize()
 	}
 	else
 		return false;
-}
-
-void ClearCache()
-{
-	std::ofstream f(Config.file_cache.c_str(), std::ios::trunc);
-	f.close();
 }
 
 void WriteCache(const std::string &s)

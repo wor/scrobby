@@ -35,10 +35,16 @@ using std::string;
 Handshake myHandshake;
 MPD::Song s;
 
+pthread_mutex_t Handshake::itsLock = PTHREAD_MUTEX_INITIALIZER;
+
 namespace
 {
+	time_t now = 0;
+	
 	void do_at_exit();
 	void signal_handler(int);
+	
+	void *queue_handler(void *);
 	
 	bool handshake_sent_properly();
 }
@@ -107,26 +113,28 @@ int main(int argc, char **argv)
 	
 	atexit(do_at_exit);
 	
+	pthread_t queue_thread;
+	pthread_create(&queue_thread, 0, queue_handler, 0);
+	pthread_detach(queue_thread);
+	
 	int handshake_delay = 0;
 	int mpd_delay = 0;
-	int queue_delay = 0;
 	
-	time_t now = 0;
 	time_t handshake_ts = 0;
 	time_t mpd_ts = 0;
-	time_t queue_ts = 0;
 	
 	while (!sleep(1))
 	{
 		time(&now);
-		if (now > handshake_ts && myHandshake.Status != "OK")
+		myHandshake.Lock();
+		if (now > handshake_ts && !myHandshake.OK())
 		{
 			myHandshake.Clear();
 			if (handshake_sent_properly() && !myHandshake.Status.empty())
 			{
 				Log(llInfo, "Handshake returned %s", myHandshake.Status.c_str());
 			}
-			if (myHandshake.Status == "OK")
+			if (!myHandshake.OK())
 			{
 				Log(llInfo, "Connected to Audioscrobbler!");
 				handshake_delay = 0;
@@ -138,6 +146,7 @@ int main(int argc, char **argv)
 				handshake_ts = time(0)+handshake_delay;
 			}
 		}
+		myHandshake.Unlock();
 		if (Mpd->Connected())
 		{
 			Mpd->UpdateStatus();
@@ -158,17 +167,6 @@ int main(int argc, char **argv)
 				mpd_ts = time(0)+mpd_delay;
 			}
 		}
-		if (now > queue_ts && !MPD::Song::Queue.empty())
-		{
-			if (!MPD::Song::SendQueue())
-			{
-				queue_delay += 30;
-				Log(llInfo, "Submission failed, retrieving in %d seconds...", queue_delay);
-				queue_ts = time(0)+queue_delay;
-			}
-			else
-				queue_delay = 0;
-		}
 	}
 	return 0;
 }
@@ -178,6 +176,7 @@ namespace
 	void do_at_exit()
 	{
 		s.Submit();
+		s.ExtractQueue();
 		Log(llInfo, "Shutting down...");
 		if (remove(Config.file_pid.c_str()) != 0)
 			Log(llInfo, "Couldn't remove pid file!");
@@ -186,6 +185,27 @@ namespace
 	void signal_handler(int)
 	{
 		exit(0);
+	}
+	
+	void *queue_handler(void *)
+	{
+		int queue_delay = 0;
+		time_t queue_ts = 0;
+		while (!sleep(1))
+		{
+			if (now > queue_ts && (!MPD::Song::SubmitQueue.empty() || !MPD::Song::Queue.empty()))
+			{
+				if (!MPD::Song::SendQueue())
+				{
+					queue_delay += 30;
+					Log(llInfo, "Submission failed, retrieving in %d seconds...", queue_delay);
+					queue_ts = time(0)+queue_delay;
+				}
+				else
+					queue_delay = 0;
+			}
+		}
+		pthread_exit(0);
 	}
 	
 	bool handshake_sent_properly()
