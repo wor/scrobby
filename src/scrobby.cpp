@@ -113,6 +113,8 @@ int main(int argc, char **argv)
 	
 	atexit(do_at_exit);
 	
+	curl_global_init(CURL_GLOBAL_ALL);
+	
 	pthread_t queue_thread;
 	pthread_create(&queue_thread, 0, queue_handler, 0);
 	pthread_detach(queue_thread);
