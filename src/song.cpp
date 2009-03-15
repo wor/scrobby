@@ -79,10 +79,9 @@ void MPD::Song::Submit()
 	{
 		if (!Queue.empty())
 		{
-			Log(llInfo, "Adding song to queue...");
+			Log(llInfo, "Adding song to queue at position %d...", Queue.size());
 			Cache();
 			Clear();
-			SendQueue();
 			return;
 		}
 		
@@ -262,10 +261,10 @@ void MPD::Song::GetCached()
 	}
 }
 
-void MPD::Song::SendQueue()
+bool MPD::Song::SendQueue()
 {
 	if (Song::Queue.empty())
-		return;
+		return true;
 	
 	Log(llInfo, "Submitting songs from queue...");
 	
@@ -302,6 +301,7 @@ void MPD::Song::SendQueue()
 		Log(llInfo, "Number of submitted songs: %d", Song::Queue.size());
 		Song::Queue.clear();
 		ClearCache();
+		return true;
 	}
 	else
 	{
@@ -313,6 +313,7 @@ void MPD::Song::SendQueue()
 		{
 			Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
 		}
+		return false;
 	}
 }
 

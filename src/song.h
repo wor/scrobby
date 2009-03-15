@@ -42,17 +42,16 @@ namespace MPD
 			int Playback;
 			
 			static void GetCached();
+			static bool SendQueue();
+			
+			static std::deque<std::string> Queue;
 			
 		private:
 			void Cache();
 			void Clear();
 			
-			static void SendQueue();
-			
 			bool canBeSubmitted();
 			bool itsIsStream;
-			
-			static std::deque<std::string> Queue;
 	};
 }
 

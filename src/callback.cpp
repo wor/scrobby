@@ -65,7 +65,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		if (old_state == MPD::psPlay && current_state == MPD::psStop)
 			old_state = MPD::psUnknown;
 		
-		if (Mpd->GetElapsedTime() < Mpd->GetCrossfade()+10)
+		if (Mpd->GetElapsedTime() < Mpd->GetCrossfade()+curl_connecttimeout+curl_timeout)
 			time(&s.StartTime);
 		
 		if (current_state == MPD::psPlay || current_state == MPD::psPause)

@@ -109,10 +109,12 @@ int main(int argc, char **argv)
 	
 	int handshake_delay = 0;
 	int mpd_delay = 0;
+	int queue_delay = 0;
 	
 	time_t now = 0;
 	time_t handshake_ts = 0;
 	time_t mpd_ts = 0;
+	time_t queue_ts = 0;
 	
 	while (!sleep(1))
 	{
@@ -131,7 +133,7 @@ int main(int argc, char **argv)
 			}
 			else
 			{
-				handshake_delay += 10;
+				handshake_delay += 20;
 				Log(llInfo, "Connection to Audioscrobbler refused, retrieving in %d seconds...", handshake_delay);
 				handshake_ts = time(0)+handshake_delay;
 			}
@@ -155,6 +157,17 @@ int main(int argc, char **argv)
 				Log(llInfo, "Cannot connect to MPD, retrieving in %d seconds...", mpd_delay);
 				mpd_ts = time(0)+mpd_delay;
 			}
+		}
+		if (now > queue_ts && !MPD::Song::Queue.empty())
+		{
+			if (!MPD::Song::SendQueue())
+			{
+				queue_delay += 30;
+				Log(llInfo, "Submission failed, retrieving in %d seconds...", queue_delay);
+				queue_ts = time(0)+queue_delay;
+			}
+			else
+				queue_delay = 0;
 		}
 	}
 	return 0;
