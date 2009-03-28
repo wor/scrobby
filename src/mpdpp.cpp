@@ -136,12 +136,14 @@ void MPD::Connection::UpdateStatus()
 	{
 		if (itsOldStatus == NULL)
 		{
+			itsChanges.Playlist = 1;
 			itsChanges.SongID = 1;
 			itsChanges.ElapsedTime = 1;
 			itsChanges.State = 1;
 		}
 		else
 		{
+			itsChanges.Playlist = itsOldStatus->playlist != itsCurrentStatus->playlist;
 			itsChanges.SongID = itsOldStatus->songid != itsCurrentStatus->songid;
 			itsChanges.ElapsedTime = itsOldStatus->elapsedTime != itsCurrentStatus->elapsedTime;
 			itsChanges.State = itsOldStatus->state != itsCurrentStatus->state;

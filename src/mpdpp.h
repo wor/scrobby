@@ -30,6 +30,7 @@ namespace MPD
 	
 	struct StatusChanges
 	{
+		bool Playlist;
 		bool SongID;
 		bool ElapsedTime;
 		bool State;

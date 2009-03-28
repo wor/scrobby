@@ -42,6 +42,11 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 	static MPD::State old_state = MPD::psUnknown;
 	static MPD::State current_state = MPD::psUnknown;
 	
+	if (changed.Playlist)
+	{
+		// now playing song's metadata could change, so update it
+		s.SetData(Mpd->CurrentSong());
+	}
 	if (changed.State)
 	{
 		old_state = current_state;
