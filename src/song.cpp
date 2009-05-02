@@ -38,8 +38,6 @@ bool MPD::Song::NowPlayingNotify = 0;
 std::deque<std::string> MPD::Song::SubmitQueue;
 std::queue<MPD::Song> MPD::Song::Queue;
 
-pthread_mutex_t MPD::Song::itsQueueMutex = PTHREAD_MUTEX_INITIALIZER;
-
 MPD::Song::Song() : Data(0),
 		    StartTime(0),
 		    Playback(0),
@@ -83,10 +81,8 @@ void MPD::Song::Submit()
 	
 	if (canBeSubmitted())
 	{
-		LockQueue();
 		Queue.push(*this);
 		Data = 0;
-		UnlockQueue();
 		Log(llInfo, "Song queued for submission.");
 	}
 	Clear();
@@ -185,19 +181,14 @@ void MPD::Song::ExtractQueue()
 
 bool MPD::Song::SendQueue()
 {
-	LockQueue();
 	ExtractQueue();
-	UnlockQueue();
 	
-	myHandshake.Lock();
 	if (!myHandshake.OK())
-	{
-		myHandshake.Unlock();
 		return false;
-	}
+	
 	Log(llInfo, "Submitting songs...");
 	
-	string url, result, postdata;
+	string result, postdata;
 	CURLcode code;
 	
 	postdata = "s=";
@@ -209,14 +200,11 @@ bool MPD::Song::SendQueue()
 	Log(llVerbose, "URL: %s", myHandshake.SubmissionURL.c_str());
 	Log(llVerbose, "Post data: %s", postdata.c_str());
 	
-	url = myHandshake.SubmissionURL;
-	myHandshake.Unlock();
-	
 	CURL *submission = curl_easy_init();
-	curl_easy_setopt(submission, CURLOPT_URL, url.c_str());
+	curl_easy_setopt(submission, CURLOPT_URL, myHandshake.SubmissionURL.c_str());
 	curl_easy_setopt(submission, CURLOPT_POST, 1);
 	curl_easy_setopt(submission, CURLOPT_POSTFIELDS, postdata.c_str());
-	curl_easy_setopt(submission, CURLOPT_WRITEFUNCTION, queue_write_data);
+	curl_easy_setopt(submission, CURLOPT_WRITEFUNCTION, write_data);
 	curl_easy_setopt(submission, CURLOPT_WRITEDATA, &result);
 	curl_easy_setopt(submission, CURLOPT_CONNECTTIMEOUT, curl_queue_connecttimeout);
 	curl_easy_setopt(submission, CURLOPT_TIMEOUT, curl_queue_timeout);
@@ -247,9 +235,7 @@ bool MPD::Song::SendQueue()
 		{
 			Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
 			// BADSESSION or FAILED was returned, handshake needs resetting.
-			myHandshake.Lock();
 			myHandshake.Clear();
-			myHandshake.Unlock();
 			Log(llVerbose, "Handshake reset");
 		}
 		return false;

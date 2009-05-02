@@ -42,9 +42,6 @@ namespace MPD
 			time_t StartTime;
 			int Playback;
 			
-			static void LockQueue() { pthread_mutex_lock(&itsQueueMutex); }
-			static void UnlockQueue() { pthread_mutex_unlock(&itsQueueMutex); }
-			
 			static void GetCached();
 			static void ExtractQueue();
 			
@@ -57,9 +54,6 @@ namespace MPD
 			
 		private:
 			void Clear();
-			
-			static pthread_mutex_t itsSubmitQueueMutex;
-			static pthread_mutex_t itsQueueMutex;
 			
 			bool canBeSubmitted();
 			bool itsIsStream;

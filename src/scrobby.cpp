@@ -35,18 +35,23 @@ using std::string;
 Handshake myHandshake;
 MPD::Song s;
 
-pthread_mutex_t Handshake::itsLock = PTHREAD_MUTEX_INITIALIZER;
-
 namespace
 {
 	time_t now = 0;
 	
-	void do_at_exit();
-	void signal_handler(int);
+	void do_at_exit()
+	{
+		s.Submit();
+		s.ExtractQueue();
+		Log(llInfo, "Shutting down...");
+		if (remove(Config.file_pid.c_str()) != 0)
+			Log(llInfo, "Couldn't remove pid file!");
+	}
 	
-	void *queue_handler(void *);
-	
-	bool handshake_sent_properly();
+	void signal_handler(int)
+	{
+		exit(0);
+	}
 }
 
 int main(int argc, char **argv)
@@ -113,26 +118,22 @@ int main(int argc, char **argv)
 	
 	atexit(do_at_exit);
 	
-	curl_global_init(CURL_GLOBAL_ALL);
-	
-	pthread_t queue_thread;
-	pthread_create(&queue_thread, 0, queue_handler, 0);
-	pthread_detach(queue_thread);
-	
 	int handshake_delay = 0;
+	int queue_delay = 0;
 	int mpd_delay = 0;
 	
 	time_t handshake_ts = 0;
+	time_t queue_ts = 0;
 	time_t mpd_ts = 0;
 	
 	while (!sleep(1))
 	{
 		time(&now);
-		myHandshake.Lock();
+		
 		if (now > handshake_ts && !myHandshake.OK())
 		{
 			myHandshake.Clear();
-			if (handshake_sent_properly() && !myHandshake.Status.empty())
+			if (myHandshake.Send() && !myHandshake.Status.empty())
 			{
 				Log(llInfo, "Handshake returned %s", myHandshake.Status.c_str());
 			}
@@ -148,7 +149,7 @@ int main(int argc, char **argv)
 				handshake_ts = time(0)+handshake_delay;
 			}
 		}
-		myHandshake.Unlock();
+		
 		if (Mpd->Connected())
 		{
 			Mpd->UpdateStatus();
@@ -169,105 +170,79 @@ int main(int argc, char **argv)
 				mpd_ts = time(0)+mpd_delay;
 			}
 		}
+		
+		if (now > queue_ts && (!MPD::Song::SubmitQueue.empty() || !MPD::Song::Queue.empty()))
+		{
+			if (!MPD::Song::SendQueue())
+			{
+				queue_delay += 30;
+				Log(llInfo, "Submission failed, retrieving in %d seconds...", queue_delay);
+				queue_ts = time(0)+queue_delay;
+			}
+			else
+				queue_delay = 0;
+		}
 	}
 	return 0;
 }
 
-namespace
+bool Handshake::Send()
 {
-	void do_at_exit()
+	CURLcode code;
+	string handshake_url;
+	string result;
+	string timestamp = IntoStr(time(NULL));
+	
+	handshake_url = "http://post.audioscrobbler.com/?hs=true&p=1.2.1&c=mpc&v="VERSION"&u=";
+	handshake_url += Config.lastfm_user;
+	handshake_url += "&t=";
+	handshake_url += timestamp;
+	handshake_url += "&a=";
+	handshake_url += md5sum((Config.lastfm_md5_password.empty() ? md5sum(Config.lastfm_password) : Config.lastfm_md5_password) + timestamp);
+	
+	CURL *hs = curl_easy_init();
+	curl_easy_setopt(hs, CURLOPT_URL, handshake_url.c_str());
+	curl_easy_setopt(hs, CURLOPT_WRITEFUNCTION, write_data);
+	curl_easy_setopt(hs, CURLOPT_WRITEDATA, &result);
+	curl_easy_setopt(hs, CURLOPT_CONNECTTIMEOUT, curl_connecttimeout);
+	curl_easy_setopt(hs, CURLOPT_TIMEOUT, curl_timeout);
+	curl_easy_setopt(hs, CURLOPT_DNS_CACHE_TIMEOUT, 0);
+	curl_easy_setopt(hs, CURLOPT_NOPROGRESS, 1);
+	curl_easy_setopt(hs, CURLOPT_NOSIGNAL, 1);
+	code = curl_easy_perform(hs);
+	curl_easy_cleanup(hs);
+	
+	if (code != CURLE_OK)
 	{
-		s.Submit();
-		s.ExtractQueue();
-		Log(llInfo, "Shutting down...");
-		if (remove(Config.file_pid.c_str()) != 0)
-			Log(llInfo, "Couldn't remove pid file!");
+		Log(llInfo, "Error while sending handshake: %s", curl_easy_strerror(code));
+		return false;
 	}
 	
-	void signal_handler(int)
+	size_t i = result.find("\n");
+	Status = result.substr(0, i);
+	if (Status != "OK")
 	{
-		exit(0);
-	}
-	
-	void *queue_handler(void *)
-	{
-		int queue_delay = 0;
-		time_t queue_ts = 0;
-		while (!sleep(1))
+		if (Status == "BANNED")
 		{
-			if (now > queue_ts && (!MPD::Song::SubmitQueue.empty() || !MPD::Song::Queue.empty()))
-			{
-				if (!MPD::Song::SendQueue())
-				{
-					queue_delay += 30;
-					Log(llInfo, "Submission failed, retrieving in %d seconds...", queue_delay);
-					queue_ts = time(0)+queue_delay;
-				}
-				else
-					queue_delay = 0;
-			}
+			Log(llInfo, "Ops, this version of scrobby is banned. Please update to the newest one or if it's the newest, inform me about it (electricityispower@gmail.com)");
 		}
-		pthread_exit(0);
-	}
-	
-	bool handshake_sent_properly()
-	{
-		CURLcode code;
-		string handshake_url;
-		string result;
-		string timestamp = IntoStr(time(NULL));
-		
-		handshake_url = "http://post.audioscrobbler.com/?hs=true&p=1.2.1&c=mpc&v="VERSION"&u=";
-		handshake_url += Config.lastfm_user;
-		handshake_url += "&t=";
-		handshake_url += timestamp;
-		handshake_url += "&a=";
-		handshake_url += md5sum((Config.lastfm_md5_password.empty() ? md5sum(Config.lastfm_password) : Config.lastfm_md5_password) + timestamp);
-		
-		CURL *hs = curl_easy_init();
-		curl_easy_setopt(hs, CURLOPT_URL, handshake_url.c_str());
-		curl_easy_setopt(hs, CURLOPT_WRITEFUNCTION, write_data);
-		curl_easy_setopt(hs, CURLOPT_WRITEDATA, &result);
-		curl_easy_setopt(hs, CURLOPT_CONNECTTIMEOUT, curl_connecttimeout);
-		curl_easy_setopt(hs, CURLOPT_TIMEOUT, curl_timeout);
-		curl_easy_setopt(hs, CURLOPT_DNS_CACHE_TIMEOUT, 0);
-		curl_easy_setopt(hs, CURLOPT_NOPROGRESS, 1);
-		curl_easy_setopt(hs, CURLOPT_NOSIGNAL, 1);
-		code = curl_easy_perform(hs);
-		curl_easy_cleanup(hs);
-		
-		if (code != CURLE_OK)
+		else if (Status == "BADAUTH")
 		{
-			Log(llInfo, "Error while sending handshake: %s", curl_easy_strerror(code));
+			Log(llInfo, "User authentication failed. Please recheck your username/password settings.");
+		}
+		else
 			return false;
-		}
-		
-		size_t i = result.find("\n");
-		myHandshake.Status = result.substr(0, i);
-		if (myHandshake.Status != "OK")
-		{
-			if (myHandshake.Status == "BANNED")
-			{
-				Log(llInfo, "Ops, this version of scrobby is banned. Please update to the newest one or if it's the newest, inform me about it (electricityispower@gmail.com)");
-			}
-			else if (myHandshake.Status == "BADAUTH")
-			{
-				Log(llInfo, "User authentication failed. Please recheck your username/password settings.");
-			}
-			else
-				return false;
-			exit(1);
-		}
-		result = result.substr(i+1);
-		i = result.find("\n");
-		myHandshake.SessionID = result.substr(0, i);
-		result = result.substr(i+1);
-		i = result.find("\n");
-		myHandshake.NowPlayingURL = result.substr(0, i);
-		result = result.substr(i+1);
-		IgnoreNewlines(result);
-		myHandshake.SubmissionURL = result;
-		return true;
+		exit(1);
 	}
+	result = result.substr(i+1);
+	i = result.find("\n");
+	SessionID = result.substr(0, i);
+	result = result.substr(i+1);
+	i = result.find("\n");
+	NowPlayingURL = result.substr(0, i);
+	result = result.substr(i+1);
+	IgnoreNewlines(result);
+	SubmissionURL = result;
+	return true;
 }
 

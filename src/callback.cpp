@@ -75,7 +75,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		if (current_state == MPD::psPlay || current_state == MPD::psPause)
 		{
 			s.SetData(Mpd->CurrentSong());
-			MPD::Song::NowPlayingNotify = s.Data && !s.isStream();
+			MPD::Song::NowPlayingNotify = s.Queue.size()+s.SubmitQueue.size() != 1 && s.Data && !s.isStream();
 		}
 	}
 	
@@ -94,10 +94,8 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 	}
 	else if (s.Data->artist && s.Data->title)
 	{
-		myHandshake.Lock();
 		if (!myHandshake.OK())
 		{
-			myHandshake.Unlock();
 			MPD::Song::NowPlayingNotify = 1;
 			return;
 		}
@@ -106,7 +104,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		Log(llInfo, "Sending now playing notification...");
 		
 		std::ostringstream postdata;
-		string url, result, postdata_str;
+		string result, postdata_str;
 		CURLcode code;
 		
 		char *c_artist = curl_easy_escape(0, s.Data->artist, 0);
@@ -141,11 +139,8 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		Log(llVerbose, "URL: %s", myHandshake.NowPlayingURL.c_str());
 		Log(llVerbose, "Post data: %s", postdata_str.c_str());
 		
-		url = myHandshake.NowPlayingURL;
-		myHandshake.Unlock();
-		
 		CURL *np_notification = curl_easy_init();
-		curl_easy_setopt(np_notification, CURLOPT_URL, url.c_str());
+		curl_easy_setopt(np_notification, CURLOPT_URL, myHandshake.NowPlayingURL.c_str());
 		curl_easy_setopt(np_notification, CURLOPT_POST, 1);
 		curl_easy_setopt(np_notification, CURLOPT_POSTFIELDS, postdata_str.c_str());
 		curl_easy_setopt(np_notification, CURLOPT_WRITEFUNCTION, write_data);
@@ -174,9 +169,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 			{
 				Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
 				// it can return only OK or BADSESSION, so if we are here, BADSESSION was returned.
-				myHandshake.Lock();
 				myHandshake.Clear();
-				myHandshake.Unlock();
 				Log(llVerbose, "Handshake reset");
 				MPD::Song::NowPlayingNotify = 1;
 			}

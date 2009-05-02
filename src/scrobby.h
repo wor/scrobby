@@ -43,16 +43,12 @@ struct Handshake
 	
 	bool OK() { return Status == "OK"; }
 	
-	void Lock() { pthread_mutex_lock(&itsLock); }
-	void Unlock() { pthread_mutex_unlock(&itsLock); }
+	bool Send();
 	
 	std::string Status;
 	std::string SessionID;
 	std::string NowPlayingURL;
 	std::string SubmissionURL;
-	
-	private:
-		static pthread_mutex_t itsLock;
 };
 
 #endif
