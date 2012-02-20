@@ -1,0 +1,5 @@
+Installation
+============
+
+    1. Run: ./autogen.sh
+    2. Compile and install: make && make install
