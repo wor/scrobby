@@ -57,6 +57,7 @@ namespace MPD
 			
 			bool canBeSubmitted();
 			bool itsIsStream;
+			bool onlySubmitMusicBrainsTagged;
 	};
 }
 

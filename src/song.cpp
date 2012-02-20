@@ -41,7 +41,8 @@ std::queue<MPD::Song> MPD::Song::Queue;
 MPD::Song::Song() : Data(0),
 		    StartTime(0),
 		    Playback(0),
-		    itsIsStream(0)
+		    itsIsStream(0),
+		    onlySubmitMusicBrainsTagged(1)
 {
 }
 
@@ -95,6 +96,11 @@ bool MPD::Song::isStream() const
 
 bool MPD::Song::canBeSubmitted()
 {
+	if (onlySubmitMusicBrainsTagged && !Data->musicbrainz_trackid) {
+		Log(llInfo, "Song has missing musicbrainz track id, not submitting.");
+		return false;
+	}
+
 	if (!StartTime || Data->time < 30 || !Data->artist || !Data->title)
 	{
 		if (!StartTime)
