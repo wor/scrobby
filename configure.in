@@ -24,6 +24,7 @@ PKG_CHECK_MODULES([libssl], libssl, ,
 			libssl_CFLAGS="" ], AC_MSG_ERROR([libssl library is required])))
 AC_SUBST(libssl_CFLAGS)
 AC_SUBST(libssl_LIBS)
+AC_CHECK_LIB(crypto, DES_xcbc_encrypt)
 CPPFLAGS="$CPPFLAGS $libssl_CFLAGS"
 LDFLAGS="$LDFLAGS $libssl_LDFLAGS"
 AC_CHECK_HEADERS([openssl/evp.h], , AC_MSG_ERROR([missing openssl/evp.h header]))
