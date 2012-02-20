@@ -84,7 +84,11 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 	
 	MPD::Song::NowPlayingNotify = 0;
 	
-	if (!s.Data->artist || !s.Data->title)
+	if (MPD::Song::onlySubmitMusicBrainsTagged && !s.Data->musicbrainz_trackid)
+	{
+		Log(llInfo, "Playing song with missing musicbrainz track id detected.");
+	}
+	else if (!s.Data->artist || !s.Data->title)
 	{
 		Log(llInfo, "Playing song with missing tags detected.");
 	}

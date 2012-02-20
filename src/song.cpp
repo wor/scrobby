@@ -34,6 +34,7 @@ extern Handshake myHandshake;
 extern MPD::Song s;
 
 bool MPD::Song::NowPlayingNotify = 0;
+bool MPD::Song::onlySubmitMusicBrainsTagged = 1;
 
 std::deque<std::string> MPD::Song::SubmitQueue;
 std::queue<MPD::Song> MPD::Song::Queue;
@@ -41,8 +42,7 @@ std::queue<MPD::Song> MPD::Song::Queue;
 MPD::Song::Song() : Data(0),
 		    StartTime(0),
 		    Playback(0),
-		    itsIsStream(0),
-		    onlySubmitMusicBrainsTagged(1)
+		    itsIsStream(0)
 {
 }
 

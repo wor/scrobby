@@ -49,6 +49,8 @@ namespace MPD
 			
 			static bool NowPlayingNotify;
 			
+			static bool onlySubmitMusicBrainsTagged;
+			
 			static std::queue<MPD::Song> Queue;
 			static std::deque<std::string> SubmitQueue;
 			
@@ -57,7 +59,6 @@ namespace MPD
 			
 			bool canBeSubmitted();
 			bool itsIsStream;
-			bool onlySubmitMusicBrainsTagged;
 	};
 }
 
