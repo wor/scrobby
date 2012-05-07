@@ -1,1 +1,2 @@
 - Add configuration option for submit only songs with musicbrainz id tag.
+    - Option added to configuration.h but we still need to use it.

@@ -45,6 +45,8 @@ struct ScrobbyConfig
 	
 	LogLevel log_level;
 	bool daemonize;
+	
+	bool submit_only_songs_with_mbid_id;
 };
 
 extern ScrobbyConfig Config;
