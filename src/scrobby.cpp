@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <curl/curl.h>
 #include <iostream>
+#include <unistd.h>
 
 #include "callback.h"
 #include "configuration.h"

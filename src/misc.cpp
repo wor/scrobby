@@ -25,6 +25,7 @@
 #include <iostream>
 #include <openssl/evp.h>
 #include <pwd.h>
+#include <unistd.h>
 
 #include "configuration.h"
 #include "misc.h"
