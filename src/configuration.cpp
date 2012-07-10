@@ -236,6 +236,8 @@ void DefaultConfiguration(ScrobbyConfig &conf)
 	
 	conf.log_level = llUndefined;
 	conf.daemonize = true;
+	
+	conf.submit_only_songs_with_mbid = false;
 }
 
 bool ReadConfiguration(ScrobbyConfig &conf, const string &file)
@@ -316,6 +318,12 @@ bool ReadConfiguration(ScrobbyConfig &conf, const string &file)
 			{
 				if (!v.empty() && conf.log_level == llUndefined)
 					conf.log_level = IntoLogLevel(v);
+			}
+			else if (line.find("submit_only_songs_with_mbid") != string::npos)
+			{
+				if (!v.empty()) // default is false
+					if (v == "1" || v == "true" || v == "yes")
+						conf.submit_only_songs_with_mbid = true;
 			}
 		}
 	}

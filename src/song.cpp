@@ -34,7 +34,6 @@ extern Handshake myHandshake;
 extern MPD::Song s;
 
 bool MPD::Song::NowPlayingNotify = 0;
-bool MPD::Song::onlySubmitMusicBrainsTagged = 1;
 
 std::deque<std::string> MPD::Song::SubmitQueue;
 std::queue<MPD::Song> MPD::Song::Queue;
@@ -96,7 +95,7 @@ bool MPD::Song::isStream() const
 
 bool MPD::Song::canBeSubmitted()
 {
-	if (onlySubmitMusicBrainsTagged && !Data->musicbrainz_trackid) {
+	if (Config.submit_only_songs_with_mbid && !Data->musicbrainz_trackid) {
 		Log(llInfo, "Song has missing musicbrainz track id, not submitting.");
 		return false;
 	}
