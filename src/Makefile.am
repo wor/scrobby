@@ -3,7 +3,7 @@ scrobby_SOURCES = callback.cpp configuration.cpp libmpdclient.c misc.cpp \
 	mpdpp.cpp scrobby.cpp song.cpp
 
 # set the include path found by configure
-INCLUDES= $(all_includes)
+AM_CPPFLAGS= $(all_includes)
 
 # the library search path.
 scrobby_LDFLAGS = $(all_libraries)

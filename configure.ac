@@ -1,13 +1,14 @@
-AC_INIT([configure.ac])
+AC_INIT([scrobby], [0.2_pre])
+AC_CONFIG_SRCDIR([src/scrobby.h])
 
-AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(scrobby, 0.2_pre)
+AC_CONFIG_HEADERS([config.h])
+AM_INIT_AUTOMAKE()
 
-AC_PREREQ(2.59)
+AC_PREREQ([2.69])
 
-AC_LANG_CPLUSPLUS
+AC_LANG([C++])
 AC_PROG_CXX
-AM_PROG_LIBTOOL
+LT_INIT
 
 
 dnl if host is freebsd, then add -lkvm to the list of libraries
