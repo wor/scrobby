@@ -1,0 +1,11 @@
+[Unit]
+Description=Scrobby daemon
+
+[Service]
+#User=scrobby
+Type=forking
+PIDFile=/run/scrobby/scrobby.pid
+ExecStart=/usr/bin/scrobby
+
+[Install]
+WantedBy=multi-user.target
