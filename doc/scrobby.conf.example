@@ -48,5 +48,5 @@
 #
 #lastfm_md5_password = ""
 #
-#submit_only_songs_with_mbid = "yes"
+#submit_only_songs_with_mbid = "no"
 #
