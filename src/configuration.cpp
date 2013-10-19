@@ -83,6 +83,14 @@ namespace
 		{
 			result = llNone;
 		}
+		else if (value == "error")
+		{
+			result = llError;
+		}
+		else if (value == "warning")
+		{
+			result = llWarning;
+		}
 		else if (value == "info")
 		{
 			result = llInfo;

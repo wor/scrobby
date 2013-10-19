@@ -22,7 +22,7 @@
 #
 ### log settings
 #
-#log_level = "info" (none/info/verbose)
+#log_level = "info" (none/error/warning/info/verbose)
 #
 ### files settings
 #

@@ -90,11 +90,11 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 	}
 	else if (!s.Data->artist || !s.Data->title)
 	{
-		Log(llInfo, "Playing song with missing tags detected.");
+		Log(llWarning, "Playing song with missing tags detected.");
 	}
 	else if (s.Data->time <= 0)
 	{
-		Log(llInfo, "Playing song with unknown length detected.");
+		Log(llWarning, "Playing song with unknown length detected.");
 	}
 	else if (s.Data->artist && s.Data->title)
 	{
@@ -105,7 +105,7 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		}
 		
 		Log(llVerbose, "Playing song detected: %s - %s", s.Data->artist, s.Data->title);
-		Log(llInfo, "Sending now playing notification...");
+		Log(llWarning, "Sending now playing notification...");
 		
 		std::ostringstream postdata;
 		string result, postdata_str;
@@ -167,11 +167,11 @@ void ScrobbyStatusChanged(MPD::Connection *Mpd, MPD::StatusChanges changed, void
 		{
 			if (result.empty())
 			{
-				Log(llInfo, "Error while sending notification: %s", curl_easy_strerror(code));
+				Log(llError, "Error while sending notification: %s", curl_easy_strerror(code));
 			}
 			else
 			{
-				Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
+				Log(llError, "Audioscrobbler returned status %s", result.c_str());
 				// it can return only OK or BADSESSION, so if we are here, BADSESSION was returned.
 				myHandshake.Clear();
 				Log(llVerbose, "Handshake reset");

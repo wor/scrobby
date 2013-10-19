@@ -104,15 +104,15 @@ bool MPD::Song::canBeSubmitted()
 	{
 		if (!StartTime)
 		{
-			Log(llInfo, "Song's start time wasn't known, not submitting.");
+			Log(llWarning, "Song's start time wasn't known, not submitting.");
 		}
 		else if (Data->time < 30)
 		{
-			Log(llInfo, "Song's length is too short, not submitting.");
+			Log(llWarning, "Song's length is too short, not submitting.");
 		}
 		else if (!Data->artist || !Data->title)
 		{
-			Log(llInfo, "Song has missing tags, not submitting.");
+			Log(llWarning, "Song has missing tags, not submitting.");
 		}
 		return false;
 	}
@@ -234,11 +234,11 @@ bool MPD::Song::SendQueue()
 	{
 		if (result.empty())
 		{
-			Log(llInfo, "Error while submitting songs: %s", curl_easy_strerror(code));
+			Log(llError, "Error while submitting songs: %s", curl_easy_strerror(code));
 		}
 		else
 		{
-			Log(llInfo, "Audioscrobbler returned status %s", result.c_str());
+			Log(llError, "Audioscrobbler returned status %s", result.c_str());
 			// BADSESSION or FAILED was returned, handshake needs resetting.
 			myHandshake.Clear();
 			Log(llVerbose, "Handshake reset");
