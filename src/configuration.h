@@ -23,7 +23,7 @@
 
 #include <string>
 
-enum LogLevel { llUndefined, llNone, llInfo, llVerbose };
+enum LogLevel { llUndefined, llNone, llError, llWarning, llInfo, llVerbose };
 
 struct ScrobbyConfig
 {

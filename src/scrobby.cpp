@@ -46,7 +46,7 @@ namespace
 		s.ExtractQueue();
 		Log(llInfo, "Shutting down...");
 		if (remove(Config.file_pid.c_str()) != 0)
-			Log(llInfo, "Couldn't remove pid file!");
+			Log(llWarning, "Couldn't remove pid file!");
 	}
 	
 	void signal_handler(int)
@@ -136,8 +136,9 @@ int main(int argc, char **argv)
 			myHandshake.Clear();
 			if (myHandshake.Send() && !myHandshake.Status.empty())
 			{
-				Log(llInfo, "Handshake returned %s", myHandshake.Status.c_str());
+				Log(llError, "Handshake returned %s", myHandshake.Status.c_str());
 			}
+
 			if (myHandshake.OK())
 			{
 				Log(llInfo, "Connected to Audioscrobbler!");
@@ -146,7 +147,7 @@ int main(int argc, char **argv)
 			else
 			{
 				handshake_delay += 20;
-				Log(llInfo, "Connection to Audioscrobbler refused, retrieving in %d seconds...", handshake_delay);
+				Log(llError, "Connection to Audioscrobbler refused, retrying in %d seconds...", handshake_delay);
 				handshake_ts = time(0)+handshake_delay;
 			}
 		}
@@ -167,7 +168,7 @@ int main(int argc, char **argv)
 			else
 			{
 				mpd_delay += 10;
-				Log(llInfo, "Cannot connect to MPD, retrieving in %d seconds...", mpd_delay);
+				Log(llError, "Cannot connect to MPD, retrying in %d seconds...", mpd_delay);
 				mpd_ts = time(0)+mpd_delay;
 			}
 		}
@@ -177,7 +178,7 @@ int main(int argc, char **argv)
 			if (!MPD::Song::SendQueue())
 			{
 				queue_delay += 30;
-				Log(llInfo, "Submission failed, retrieving in %d seconds...", queue_delay);
+				Log(llError, "Submission failed, retrying in %d seconds...", queue_delay);
 				queue_ts = time(0)+queue_delay;
 			}
 			else
@@ -215,7 +216,7 @@ bool Handshake::Send()
 	
 	if (code != CURLE_OK)
 	{
-		Log(llInfo, "Error while sending handshake: %s", curl_easy_strerror(code));
+		Log(llError, "Error while sending handshake: %s", curl_easy_strerror(code));
 		return false;
 	}
 	
@@ -225,11 +226,11 @@ bool Handshake::Send()
 	{
 		if (Status == "BANNED")
 		{
-			Log(llInfo, "Ops, this version of scrobby is banned. Please update to the newest one or if it's the newest, inform me about it (electricityispower@gmail.com)");
+			Log(llError, "Ops, this version of scrobby is banned. Please update to the newest one or if it's the newest, inform me about it (electricityispower@gmail.com)");
 		}
 		else if (Status == "BADAUTH")
 		{
-			Log(llInfo, "User authentication failed. Please recheck your username/password settings.");
+			Log(llError, "User authentication failed. Please check username/password settings.");
 		}
 		else
 			return false;
