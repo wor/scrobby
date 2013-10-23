@@ -1,5 +1,11 @@
 scrobby - an audioscrobbler mpd client written in C++
 http://unkart.ovh.org/scrobby/
+http://repo.or.cz/w/scrobby.git
 
-Just added patches to fix compilation errors with new gcc versions and
-configuration option to skip submitting songs without musicbrains id tag.
+This "fork" was originally made to fix compilation errors.
+
+At the moment only minor features have been added:
+
+    * Compilation fixes, build cleanup
+    * Option to not submit songs without musicbrains ID
+    * Loglevel changes
